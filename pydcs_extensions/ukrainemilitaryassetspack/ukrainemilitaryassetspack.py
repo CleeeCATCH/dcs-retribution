@@ -443,9 +443,9 @@ class CH_MiG_29MU2(PlaneType):
             1,
             Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
         )
-        AIM_120C_5_AMRAAM___Active_Radar_AAM = (
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
             1,
-            Weapons.AIM_120C_5_AMRAAM___Active_Radar_AAM,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
 
     # ERRR <CLEAN>
@@ -467,9 +467,9 @@ class CH_MiG_29MU2(PlaneType):
             2,
             Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
         )
-        AIM_120C_5_AMRAAM___Active_Radar_AAM = (
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
             2,
-            Weapons.AIM_120C_5_AMRAAM___Active_Radar_AAM,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         Kh_29T__AS_14_Kedge____670kg__ASM__TV_Guided__ = (
             2,
@@ -544,9 +544,9 @@ class CH_MiG_29MU2(PlaneType):
             3,
             Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
         )
-        AIM_120C_5_AMRAAM___Active_Radar_AAM = (
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
             3,
-            Weapons.AIM_120C_5_AMRAAM___Active_Radar_AAM,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         Kh_29T__AS_14_Kedge____670kg__ASM__TV_Guided__ = (
             3,
@@ -624,9 +624,9 @@ class CH_MiG_29MU2(PlaneType):
             5,
             Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
         )
-        AIM_120C_5_AMRAAM___Active_Radar_AAM = (
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
             5,
-            Weapons.AIM_120C_5_AMRAAM___Active_Radar_AAM,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         Kh_29T__AS_14_Kedge____670kg__ASM__TV_Guided__ = (
             5,
@@ -700,9 +700,9 @@ class CH_MiG_29MU2(PlaneType):
             6,
             Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
         )
-        AIM_120C_5_AMRAAM___Active_Radar_AAM = (
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
             6,
-            Weapons.AIM_120C_5_AMRAAM___Active_Radar_AAM,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
         Kh_29T__AS_14_Kedge____670kg__ASM__TV_Guided__ = (
             6,
@@ -776,9 +776,9 @@ class CH_MiG_29MU2(PlaneType):
             7,
             Weapons.AIM_120B_AMRAAM___Active_Radar_AAM,
         )
-        AIM_120C_5_AMRAAM___Active_Radar_AAM = (
+        AIM_120C_AMRAAM___Active_Radar_AAM = (
             7,
-            Weapons.AIM_120C_5_AMRAAM___Active_Radar_AAM,
+            Weapons.AIM_120C_AMRAAM___Active_Radar_AAM,
         )
 
     # ERRR <CLEAN>
