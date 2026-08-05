@@ -165,7 +165,7 @@ class CH_Su_24MU(PlaneType):
     chaff_charge_size = 1
     flare_charge_size = 1
 
-    livery_name = "SU-24MU"  # from type
+    livery_name = "CH_SU-24MU"  # from type
 
     class Pylon1:
         R_60M__AA_8_Aphid_B____IR_AAM = (1, Weapons.R_60M__AA_8_Aphid_B____IR_AAM)
@@ -424,7 +424,7 @@ class CH_MiG_29MU2(PlaneType):
     eplrs = True
     category = "Interceptor"  # {78EFB7A2-FD52-4b57-A6A6-3BF0E1D6555F}
 
-    livery_name = "MIG-29MU2"  # from type
+    livery_name = "CH_MIG-29MU2"  # from type
 
     class Pylon1:
         R_73__AA_11_Archer____Infra_Red = (1, Weapons.R_73__AA_11_Archer____Infra_Red)
