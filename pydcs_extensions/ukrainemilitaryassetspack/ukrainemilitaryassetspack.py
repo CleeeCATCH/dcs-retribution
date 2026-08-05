@@ -28,7 +28,7 @@ class WeaponsUKR:
         "name": "[CH] Storm Shadow ALCM",
         "weight": 1300,
     }
-    (CH_Taurus_KEPD_350_ALCM,) = {
+    CH_Taurus_KEPD_350_ALCM = {
         "clsid": "{SU24MU_KEPD350}",
         "name": "[CH] Taurus KEPD-350 ALCM",
         "weight": 1400,
