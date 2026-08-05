@@ -140,7 +140,6 @@ class CH_Stugna_P(unittype.VehicleType):
     eplrs = True
 
 
-
 # Logistics
 @vehiclemod
 class CH_KrAZ6322(unittype.VehicleType):
