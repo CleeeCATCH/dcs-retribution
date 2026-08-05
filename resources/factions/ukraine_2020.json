@@ -18,7 +18,7 @@
     "Mirage 2000C",
     "[CH] Su-27P1M",
     "[CH] MiG-29MU2",
-    "[CH] Su-24MU"
+    "[CH] Su-24MU",
   ],
   "awacs": [],
   "tankers": [],
@@ -34,7 +34,7 @@
     "[CH] Kozak-5 APC",
     "[CH] KrAZ Spartan APC",
     "MBT T-64BV Type 2017 [CH]",
-    "MBT T-84 Oplot-M [CH]"
+    "MBT T-84 Oplot-M [CH]",
   ],
   "artillery_units": [],
   "logistics_units": [
@@ -48,11 +48,9 @@
     "Paratrooper AKS",
     "Paratrooper RPG-16",
     "[CH] Alligator Sniper AMR",
-    "[CH] Stugna-P ATGM"
+    "[CH] Stugna-P ATGM",
   ],
-  "missiles": [
-    "[CH] M270A1 MLRS (ATACMS)"
-  ],
+  "missiles": [],
   "preset_groups": [
     "SA-5/S-200",
     "SA-3/S-125",
