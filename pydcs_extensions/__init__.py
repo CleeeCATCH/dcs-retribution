@@ -43,6 +43,7 @@ from .uh60l import *
 from .vietnamwarvessels import *
 from .chinesemilitaryassetspack import *
 from .russianmilitaryassetspack import *
+from .russianmissilepack import *
 from .usamilitaryassetspack import *
 from .ukmilitaryassetspack import *
 from .ukrainemilitaryassetspack import *
