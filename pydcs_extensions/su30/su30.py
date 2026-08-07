@@ -7,6 +7,9 @@ from dcs.weapons_data import Weapons
 
 from game.modsupport import planemod
 from pydcs_extensions.weapon_injector import inject_weapons
+from pydcs_extensions.russianmissilepack.russianmissilepack import (
+    WeaponsRussianMissilePack as RMP,
+)
 
 
 class WeaponsSu30:
@@ -583,7 +586,19 @@ class Su_30SM(PlaneType):
         Smoke_Generator___orange = (2, Weapons.Smoke_Generator___orange)
         Smoke_Generator___Black = (2, Weapons.Smoke_Generator___Black)
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            2,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            2,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            2,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
 
     class Pylon3:
         R_73__AA_11_Archer____Infra_Red = (3, Weapons.R_73__AA_11_Archer____Infra_Red)
@@ -746,7 +761,23 @@ class Su_30SM(PlaneType):
         )
         _2_x_S_25 = (3, Weapons._2_x_S_25)
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            3,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            3,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            3,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
+        Mk_R_37M__AA_13_Axehead____Active_Rdr = (
+            3,
+            RMP.Mk_R_37M__AA_13_Axehead____Active_Rdr,
+        )
 
     class Pylon4:
         R_27R1__AA_10_Alamo_A____Semi_Act_Rdr = (
@@ -876,7 +907,23 @@ class Su_30SM(PlaneType):
             Weapons.MBD3_U6_68_with_6_x_FAB_100___100kg,
         )
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            4,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            4,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            4,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
+        Mk_R_37M__AA_13_Axehead____Active_Rdr = (
+            4,
+            RMP.Mk_R_37M__AA_13_Axehead____Active_Rdr,
+        )
 
     class Pylon5:
         R_27R1__AA_10_Alamo_A____Semi_Act_Rdr = (
@@ -982,7 +1029,23 @@ class Su_30SM(PlaneType):
         APK_9_POD = (5, Weapons.APK_9_POD)
         L_081_Fantasmagoria_ELINT_pod = (5, Weapons.L_081_Fantasmagoria_ELINT_pod)
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            5,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            5,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            5,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
+        Mk_R_37M__AA_13_Axehead____Active_Rdr = (
+            5,
+            RMP.Mk_R_37M__AA_13_Axehead____Active_Rdr,
+        )
 
     class Pylon6:
         R_27R1__AA_10_Alamo_A____Semi_Act_Rdr = (
@@ -1091,7 +1154,23 @@ class Su_30SM(PlaneType):
             Weapons.RBK_500___268_x_PTAB_1M__500kg_CBU_Light_HEAT_AP,
         )
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            6,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            6,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            6,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
+        Mk_R_37M__AA_13_Axehead____Active_Rdr = (
+            6,
+            RMP.Mk_R_37M__AA_13_Axehead____Active_Rdr,
+        )
 
     class Pylon7:
         R_27R1__AA_10_Alamo_A____Semi_Act_Rdr = (
@@ -1197,7 +1276,23 @@ class Su_30SM(PlaneType):
             Weapons.RBK_500___268_x_PTAB_1M__500kg_CBU_Light_HEAT_AP,
         )
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            7,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            7,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            7,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
+        Mk_R_37M__AA_13_Axehead____Active_Rdr = (
+            7,
+            RMP.Mk_R_37M__AA_13_Axehead____Active_Rdr,
+        )
 
     class Pylon8:
         R_27R1__AA_10_Alamo_A____Semi_Act_Rdr = (
@@ -1302,7 +1397,23 @@ class Su_30SM(PlaneType):
         )
         T220_FLIR_LDT_POD = (8, Weapons.T220_FLIR_LDT_POD)
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            8,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            8,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            8,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
+        Mk_R_37M__AA_13_Axehead____Active_Rdr = (
+            8,
+            RMP.Mk_R_37M__AA_13_Axehead____Active_Rdr,
+        )
 
     class Pylon9:
         R_27R1__AA_10_Alamo_A____Semi_Act_Rdr = (
@@ -1433,7 +1544,23 @@ class Su_30SM(PlaneType):
             Weapons.MBD3_U6_68_with_6_x_FAB_100___100kg,
         )
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            9,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            9,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            9,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
+        Mk_R_37M__AA_13_Axehead____Active_Rdr = (
+            9,
+            RMP.Mk_R_37M__AA_13_Axehead____Active_Rdr,
+        )
 
     class Pylon10:
         R_73__AA_11_Archer____Infra_Red = (10, Weapons.R_73__AA_11_Archer____Infra_Red)
@@ -1613,7 +1740,23 @@ class Su_30SM(PlaneType):
         )
         _2_x_S_25 = (10, Weapons._2_x_S_25)
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            10,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            10,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            10,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
+        Mk_R_37M__AA_13_Axehead____Active_Rdr = (
+            10,
+            RMP.Mk_R_37M__AA_13_Axehead____Active_Rdr,
+        )
 
     class Pylon11:
         R_73__AA_11_Archer____Infra_Red = (11, Weapons.R_73__AA_11_Archer____Infra_Red)
@@ -1649,7 +1792,19 @@ class Su_30SM(PlaneType):
         Smoke_Generator___orange = (11, Weapons.Smoke_Generator___orange)
         Smoke_Generator___Black = (11, Weapons.Smoke_Generator___Black)
 
-    # ERRR <CLEAN>
+        # ERRR <CLEAN>
+        Mk_R_77__AA_12_Adder_Early____Active_Rdr = (
+            11,
+            RMP.Mk_R_77__AA_12_Adder_Early____Active_Rdr,
+        )
+        Mk_R_77_1__AA_12_Adder_B____Active_Rdr = (
+            11,
+            RMP.Mk_R_77_1__AA_12_Adder_B____Active_Rdr,
+        )
+        Mk_R_77M__AA_12_Adder_C____Active_Rdr = (
+            11,
+            RMP.Mk_R_77M__AA_12_Adder_C____Active_Rdr,
+        )
 
     class Pylon12:
         R_73__AA_11_Archer____Infra_Red = (12, Weapons.R_73__AA_11_Archer____Infra_Red)
