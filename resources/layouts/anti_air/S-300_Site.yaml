@@ -13,6 +13,9 @@ groups:
         - S-300V 9S15 sr # SA-12
         - S-300PMU1 40B6MD sr # SA-20 + B, is the 5N66E
         - S-300VM 9S15M2 sr # SA-23
+        - S-400 96L6E mast sr # SA-21, Cheese Board (mast)
+        - S-400 96L6E sr # SA-21, Cheese Board (truck)
+        - S-300V4 9S15MDE sr # SA-23 S-300V4, Bill Board
     - name: S-300 Site SR2
       unit_count:
         - 1
@@ -23,6 +26,8 @@ groups:
         - S-300V 9S19 sr # SA-12
         - S-300PMU1 64N6E sr # SA-20 + B
         - S-300VM 9S19M2 sr # SA-23
+        - S-400 91N6E sr # SA-21, Big Bird
+        - S-300V4 9S19M-1E sr # SA-23 S-300V4, High Screen
     - name: S-300 Site CP
       unit_count:
         - 1
@@ -33,6 +38,8 @@ groups:
         - S-300PMU1 54K6 cp # SA-20
         - S-300PMU2 54K6E2 cp # SA-20B
         - S-300VM 9S457ME cp # SA-23
+        - S-400 55K6 cp # SA-21
+        - S-300V4 9S457-2E cp # SA-23 S-300V4
     - name: S-300 Site TR
       unit_count:
         - 1
@@ -44,6 +51,9 @@ groups:
         - S-300PMU1 40B6M tr # SA-20, is the 30N6E!
         - S-300PMU2 92H6E tr # SA-20B
         - S-300VM 9S32ME tr # SA-23
+        - S-400 92N6E mast tr # SA-21, Grave Stone (mast)
+        - S-400 92N6E tr # SA-21, Grave Stone (truck)
+        - S-300V4 9S32M-1E tr # SA-23 S-300V4, Grill Screen
     - name: S-300 Site LN1
       unit_count:
         - 3
@@ -54,6 +64,9 @@ groups:
         - S-300PMU1 5P85CE ln # SA-20
         - S-300PMU2 5P85SE2 ln # SA-20B
         - S-300VM 9A82ME ln # SA-23
+        - S-400 51P6A ln # SA-21, 48N6DM TEL A
+        - S-400 51P6A (40N6E) ln # SA-21, 40N6E TEL C
+        - S-300V4 9A82M-2E ln # SA-23 S-300V4, Giant TEL A
     - name: S-300 Site LN2
       unit_count:
         - 3
@@ -64,6 +77,11 @@ groups:
         - S-300PMU1 5P85DE ln # SA-20
         - S-300PMU2 5P85SE2 ln # SA-20B
         - S-300VM 9A83ME ln # SA-23
+        - S-400 51P6A (9M96E2) ln # SA-21, 9M96E2 TEL B
+        - S-400 51P6A ln # SA-21, 48N6DM TEL A (also fills LN1, as SA-20B does)
+        - S-400 51P6A (40N6E) ln # SA-21, 40N6E TEL C
+        - S-300V4 9A83M-2E ln # SA-23 S-300V4, Gladiator TEL C
+        - S-300V4 9A84M-2E ln # SA-23 S-300V4, Giant TEL B
   - PD:
     - name: S-300 Site SHORAD1
       optional: true
