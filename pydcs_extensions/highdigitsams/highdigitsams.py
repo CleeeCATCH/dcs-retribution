@@ -202,6 +202,88 @@ class SAM_SA_20B_S_300PMU2_LN_5P85SE2(unittype.VehicleType):
 
 
 @vehiclemod
+class SAM_SA_21_S_400_CP_55K6(unittype.VehicleType):
+    id = "S-400 55K6 cp"
+    name = "SAM SA-21 S-400 CP 55K6"
+    detection_range = 0
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_21_S_400_SR_91N6E(unittype.VehicleType):
+    id = "S-400 91N6E sr"
+    name = "SAM SA-21 S-400 SR 91N6E"
+    detection_range = 500000
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_21_S_400_SR_96L6E_truck(unittype.VehicleType):
+    id = "S-400 96L6E sr"
+    name = "SAM SA-21 S-400 SR 96L6E(truck)"
+    detection_range = 330000
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_21_S_400_SR_96L6E_mast(unittype.VehicleType):
+    id = "S-400 96L6E mast sr"
+    name = "SAM SA-21 S-400 SR 96L6E(mast)"
+    detection_range = 520000
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_21_S_400_TR_92N6E_truck(unittype.VehicleType):
+    id = "S-400 92N6E tr"
+    name = "SAM SA-21 S-400 TR 92N6E(truck)"
+    detection_range = 450000
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_21_S_400_TR_92N6E_mast(unittype.VehicleType):
+    id = "S-400 92N6E mast tr"
+    name = "SAM SA-21 S-400 TR 92N6E(mast)"
+    detection_range = 450000
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_21_S_400_LN_51P6A(unittype.VehicleType):
+    id = "S-400 51P6A ln"
+    name = "SAM SA-21 S-400 LN 51P6A(48N6DM)"
+    detection_range = 0
+    threat_range = 250000
+    air_weapon_dist = 250000
+
+
+@vehiclemod
+class SAM_SA_21_S_400_LN_51P6A_9M96E2(unittype.VehicleType):
+    id = "S-400 51P6A (9M96E2) ln"
+    name = "SAM SA-21 S-400 LN 51P6A(9M96E2)"
+    # Mixed load: carries 48N6DM alongside the 9M96E2, so the longer reach governs.
+    detection_range = 0
+    threat_range = 250000
+    air_weapon_dist = 250000
+
+
+@vehiclemod
+class SAM_SA_21_S_400_LN_51P6A_40N6E(unittype.VehicleType):
+    id = "S-400 51P6A (40N6E) ln"
+    name = "SAM SA-21 S-400 LN 51P6A(40N6E)"
+    detection_range = 0
+    threat_range = 400000
+    air_weapon_dist = 400000
+
+
+@vehiclemod
 class SAM_SA_12_S_300V_9S457_CP(unittype.VehicleType):
     id = "S-300V 9S457 cp"
     name = "SAM SA-12 S-300V 9S457 CP"
@@ -307,6 +389,69 @@ class SAM_SA_23_S_300VM_9A82ME_LN(unittype.VehicleType):
     detection_range = 0
     threat_range = 200000
     air_weapon_dist = 200000
+
+
+@vehiclemod
+class SAM_SA_23_S_300V4_CP_9S457_2E(unittype.VehicleType):
+    id = "S-300V4 9S457-2E cp"
+    name = "SAM SA-23 S-300V4 CP 9S457-2E"
+    detection_range = 0
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_23_S_300V4_SR_9S15MDE(unittype.VehicleType):
+    id = "S-300V4 9S15MDE sr"
+    name = "SAM SA-23 S-300V4 SR 9S15MDE"
+    detection_range = 500000
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_23_S_300V4_SR_9S19M_1E(unittype.VehicleType):
+    id = "S-300V4 9S19M-1E sr"
+    name = "SAM SA-23 S-300V4 SR 9S19M-1E"
+    detection_range = 450000
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_23_S_300V4_TR_9S32M_1E(unittype.VehicleType):
+    id = "S-300V4 9S32M-1E tr"
+    name = "SAM SA-23 S-300V4 TR 9S32M-1E"
+    detection_range = 400000
+    threat_range = 0
+    air_weapon_dist = 0
+
+
+@vehiclemod
+class SAM_SA_23_S_300V4_LN_9A82M_2E(unittype.VehicleType):
+    id = "S-300V4 9A82M-2E ln"
+    name = "SAM SA-23 S-300V4 LN 9A82M-2E"
+    detection_range = 0
+    threat_range = 380000
+    air_weapon_dist = 380000
+
+
+@vehiclemod
+class SAM_SA_23_S_300V4_LN_9A84M_2E(unittype.VehicleType):
+    id = "S-300V4 9A84M-2E ln"
+    name = "SAM SA-23 S-300V4 LN 9A84M-2E"
+    detection_range = 0
+    threat_range = 380000
+    air_weapon_dist = 380000
+
+
+@vehiclemod
+class SAM_SA_23_S_300V4_LN_9A83M_2E(unittype.VehicleType):
+    id = "S-300V4 9A83M-2E ln"
+    name = "SAM SA-23 S-300V4 LN 9A83M-2E"
+    detection_range = 0
+    threat_range = 150000
+    air_weapon_dist = 150000
 
 
 @vehiclemod
