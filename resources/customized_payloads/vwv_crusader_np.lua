@@ -10,22 +10,22 @@ local unitPayloads = {
 			{
 				[1]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=2
 				},
 				[2]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=5
 				},
 				[3]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=3
 				},
 				[4]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=4
 				}
 			},
@@ -42,32 +42,32 @@ local unitPayloads = {
 			{
 				[1]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=2
 				},
 				[2]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=5
 				},
 				[3]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=3
 				},
 				[4]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=4
 				},
 				[5]=
 				{
-					["CLSID"]="{Mk-82_IMER_4_L}",
+					["CLSID"]="{SB_F8_BRU_41A_M82_4 Lt}",
 					["num"]=2
 				},
 				[6]=
 				{
-					["CLSID"]="{Mk-82_IMER_4_R}",
+					["CLSID"]="{SB_F8_BRU_41A_M82_4 Rt}",
 					["num"]=5
 				}
 			},
@@ -94,12 +94,12 @@ local unitPayloads = {
 				},
 				[3]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=3
 				},
 				[4]=
 				{
-					["CLSID"]="{AIM-9D}",
+					["CLSID"]="{F8_AIM-9D}",
 					["num"]=4
 				},
 				[5]=
