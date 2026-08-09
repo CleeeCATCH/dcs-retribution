@@ -18,32 +18,33 @@ class WeaponsRussianMissilePack:
 
     Mk_R_77__AA_12_Adder_Early____Active_Rdr = {
         "clsid": "{Mk_R77}",
-        "name": "R-77 (AA-12 Adder Early) - Active Rdr",
+        "name": "R-77 (AA-12 Adder Early) - Active Rdr Mk",
         "weight": 175,
     }
     Mk_R_77_1__AA_12_Adder_B____Active_Rdr = {
         "clsid": "{Mk_R771}",
-        "name": "R-77-1 (AA-12 Adder B) - Active Rdr",
+        "name": "R-77-1 (AA-12 Adder B) - Active Rdr Mk",
         "weight": 190,
     }
     Mk_R_77_1__AA_12_Adder_B__x_2 = {
         "clsid": "{DUAL_Mk_771}",
-        "name": "R-77-1 (AA-12 Adder B) x 2",
+        # This one is built from the missile's user_name, not the loadout name.
+        "name": "R-77-1 (AA-12 Adder B) Mk x 2",
         "weight": 540,
     }
     Mk_R_77M__AA_12_Adder_C____Active_Rdr = {
         "clsid": "{Mk_R77M}",
-        "name": "R-77M (AA-12 Adder C) - Active Rdr",
+        "name": "R-77M (AA-12 Adder C) - Active Rdr Mk",
         "weight": 190,
     }
     Mk_R_77M__AA_12_Adder_C__x_2 = {
         "clsid": "{DUAL_Mk_R77M}",
-        "name": "R-77M (AA-12 Adder C) x 2",
+        "name": "R-77M (AA-12 Adder C) - Active Rdr Mk x 2",
         "weight": 540,
     }
     Mk_R_37M__AA_13_Axehead____Active_Rdr = {
         "clsid": "{Mk_R37M}",
-        "name": "R-37M (AA-13 Axehead) - Active Rdr",
+        "name": "R-37M (AA-13 Axehead) - Active Rdr Mk",
         "weight": 600,
     }
 

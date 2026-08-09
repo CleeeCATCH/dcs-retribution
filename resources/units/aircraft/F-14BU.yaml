@@ -24,6 +24,14 @@ role: Carrier-based Air-Superiority Fighter/Fighter Bomber
 max_range: 350
 variants:
   F-14B(U) Tomcat: {}
+# Wingtip AIM-9X rail added by the "AIM-54C+ AND AIM-9X" mod. Pylon 1 is station 1A
+# and pylon 10 is station 8A -- the only two carrying the LAU-138 wingtip rail. The
+# CLSID itself is injected by pydcs_extensions/f14_aim9x.
+weapon_injections:
+  1:
+    - "{LAU-138 wtip - AIM-9X}"
+  10:
+    - "{LAU-138 wtip - AIM-9X}"
 radios:
   intra_flight: AN/ARC-182
   inter_flight: AN/ARC-159
