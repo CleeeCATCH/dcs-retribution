@@ -11,17 +11,78 @@ if dcsRetribution then
     if dcsRetribution.plugins then
         if dcsRetribution.plugins.artymbot then
             env.info("DCSRetribution|Mbot's Call Artillery Script plugin - Setting Up")
+
+            -- Retribution group names carry bookkeeping the script would otherwise
+            -- mangle into a callsign ("0001 | BUNNY (Naval Two Ship)" became " 0-0",
+            -- which collided for every group). Newer missions ship a ready-made
+            -- callsign; derive one from the naming convention when they don't.
+            local usedCallsigns = {}
+            local function Callsign(data)
+                local callsign = data.callsign
+                if not callsign then
+                    -- "0001 | BUNNY (Naval Two Ship)"
+                    callsign = string.match(data.groupName, "^%d+%s*|%s*(.+)$")
+                end
+                if not callsign then
+                    -- "unit|<country>|<n>|<unit type>|"
+                    callsign = string.match(data.groupName, "^unit|[^|]*|[^|]*|(.+)|$")
+                    if callsign and string.match(callsign, "^%d+$") then
+                        callsign = nil                  -- older builds put an id here, not a name
+                    end
+                end
+                if not callsign then
+                    return nil                          -- let the script fall back to the unit callsign
+                end
+                local unique, suffix = callsign, 1
+                while usedCallsigns[unique] do
+                    suffix = suffix + 1
+                    unique = callsign .. " " .. suffix
+                end
+                usedCallsigns[unique] = true
+                return unique
+            end
+
+            local fireSupport, observers = 0, 0
             for _, data in pairs(dcsRetribution.artilleryGroups.groundArtillery) do
-                AddFS(data.groupName)
+                AddFS(data.groupName, nil, Callsign(data))
+                fireSupport = fireSupport + 1
             end
             if dcsRetribution.plugins.artymbot.shipArtilleryEnable then
                 for _, data in pairs(dcsRetribution.artilleryGroups.shipArtillery) do
-                    AddFS(data.groupName)
+                    AddFS(data.groupName, nil, Callsign(data))
+                    fireSupport = fireSupport + 1
                 end
             end
             for _, data in pairs(dcsRetribution.forwardObserverUnits) do
                 AddFO(data.unitName)
+                observers = observers + 1
             end
+            env.info("DCSRetribution|Mbot's Call Artillery Script plugin - Registered "
+                .. fireSupport .. " fire support group(s), " .. observers .. " forward observer(s) from mission data")
+
+            -- The generated forwardObserverUnits list only covers the flight types
+            -- the mission generator knows how to mark as observers, and it is empty
+            -- on most turns. Fire support is useless without an observer, so also
+            -- pick up occupied player slots at runtime: a slot reports no player
+            -- name until someone actually takes it, hence the polling.
+            local function RegisterPlayersAsObservers()
+                for _, side in pairs({coalition.side.RED, coalition.side.BLUE}) do
+                    local groups = coalition.getGroups(side)
+                    if groups then
+                        for _, group in pairs(groups) do
+                            for _, unit in pairs(group:getUnits() or {}) do
+                                local unitName = unit:getName()
+                                if unit:getPlayerName() and FO[unitName] == nil then
+                                    AddFO(unitName)
+                                    env.info("DCSRetribution|Mbot's Call Artillery Script plugin - Registered forward observer " .. unitName)
+                                end
+                            end
+                        end
+                    end
+                end
+                return timer.getTime() + 5
+            end
+            timer.scheduleFunction(RegisterPlayersAsObservers, nil, timer.getTime() + 3)
         end
     end
 end

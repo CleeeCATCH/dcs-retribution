@@ -238,6 +238,20 @@ class LuaGenerator:
             "shipArtillery"
         )
 
+        # DCS unit names are prefixed with a zero-padded ID, which makes for a
+        # terrible radio callsign. Derive a readable, unique one instead so
+        # scripts don't have to guess it from the unit name.
+        used_callsigns: set[str] = set()
+
+        def artillery_callsign(base: str) -> str:
+            callsign = base
+            suffix = 1
+            while callsign in used_callsigns:
+                suffix += 1
+                callsign = f"{base} {suffix}"
+            used_callsigns.add(callsign)
+            return callsign
+
         # First add all artillery units that are theater objects (mostly ships)
         for ground_object in self.game.theater.ground_objects:
             for group in ground_object.groups:
@@ -250,6 +264,9 @@ class LuaGenerator:
                         ground_artillery_group_collection.add_item()
                     )
                     ground_artillery_group.add_key_value("groupName", group.group_name)
+                    ground_artillery_group.add_key_value(
+                        "callsign", artillery_callsign(group.name)
+                    )
                 elif group_first_unit.unit_type.unit_class in (
                     UnitClass.CRUISER,
                     UnitClass.DESTROYER,
@@ -258,6 +275,9 @@ class LuaGenerator:
                     # TODO: we assume that these ship classes have guns... Which might not be the case.
                     ship_artillery_group = ship_artillery_group_collection.add_item()
                     ship_artillery_group.add_key_value("groupName", group.group_name)
+                    ship_artillery_group.add_key_value(
+                        "callsign", artillery_callsign(group.name)
+                    )
 
         # Add artillery that are frontline groups
         for frontline_group in (
@@ -269,15 +289,17 @@ class LuaGenerator:
                 ground_artillery_group.add_key_value(
                     "groupName", frontline_group.group_name
                 )
+                ground_artillery_group.add_key_value(
+                    "callsign",
+                    artillery_callsign(frontline_group.unit_type.display_name),
+                )
 
         # Add forward observer (FO) (TODO: maybe adding new flight type "Foward Observer"?)
+        # Any player slot can act as a forward observer. Restricting this to a
+        # single flight type meant most turns generated an empty list, which
+        # silently leaves fire support scripts without a radio menu.
         forward_observer_object = lua_data.add_item("forwardObserverUnits")
         for flight in self.mission_data.flights:
-            if len(flight.client_units) == 0:
-                continue
-            if flight.flight_type != FlightType.ARMED_RECON:
-                continue
-
             for client_unit in flight.client_units:
                 forward_observer = forward_observer_object.add_item()
                 forward_observer.add_key_value("unitName", client_unit.name)

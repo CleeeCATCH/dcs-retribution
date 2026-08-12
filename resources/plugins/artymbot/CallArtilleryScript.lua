@@ -4,27 +4,36 @@
 ----------------------------------------------------------------
 
 --Script control functions:
---AddFS(GroupName, SalvoSize)									--define group that can provide fire support; SalvoSize = numer of rounds per fire mission or table with selectable amounts of rounds per fire mission
+--AddFS(GroupName, SalvoSize, Callsign)						--define group that can provide fire support; SalvoSize = numer of rounds per fire mission or table with selectable amounts of rounds per fire mission; Callsign = optional display name, otherwise derived from the unit callsign
 --AddFO(UnitName)												--define unit that can call fire support
 
 ----------------------------------------------------------------
 
-local SoundFilename = "l10n/DEFAULT/beep.wav"					--name of sound file to be played whenever a radio text message is displayed 
+local SoundFilename = "l10n/DEFAULT/beep.wav"					--name of sound file to be played whenever a radio text message is displayed
 env.info("DCSRetribution|Mbot's Call Artillery Script plugin - Imported")
+
+--put callsign "Enfield11" into format "Enfield 1-1". Ground and ship units report
+--their unit name here rather than a flight callsign, so bail out unchanged when
+--the expected two trailing digits are absent instead of erroring on a nil match.
+function FormatCallsign(Callsign)
+	if Callsign == nil or Callsign == "" then
+		return nil
+	end
+	local a,b = string.find(Callsign, "%d%d")
+	if a == nil or a == 1 then									--no digit pair, or nothing left of it to use as a name
+		return Callsign
+	end
+	return string.sub(Callsign, 1, a - 1) .. " " .. string.sub(Callsign, a, a) .. "-" .. string.sub(Callsign, b, b)
+end
+
 --Fire support groups
 FS = {}															--Fire Support
-function AddFS(GroupName, SalvoSize)							--add new fire support group
+function AddFS(GroupName, SalvoSize, Callsign)					--add new fire support group
 	if Group.getByName(GroupName) then
 		FS[GroupName] = {
-			callsign = Group.getByName(GroupName):getUnit(1):getCallsign(),
+			callsign = Callsign or FormatCallsign(Group.getByName(GroupName):getUnit(1):getCallsign()) or GroupName,
 			SalvoSize = SalvoSize or {10, 20, 30, 40},
 		}
-		if FS[GroupName].callsign == "" then
-			FS[GroupName].callsign = GroupName
-		else
-			local a,b = string.find(FS[GroupName].callsign, "%d%d")
-			FS[GroupName].callsign = string.sub(FS[GroupName].callsign, 1, a - 1) .. " " .. string.sub(FS[GroupName].callsign, a, a) .. "-" .. string.sub(FS[GroupName].callsign, b, b)		--put callsign "Enfield11" into format "Enfield 1-1"
-		end
 	end
 end
 
@@ -852,9 +861,7 @@ end
 ----- Call for Fire Part 1 (observer identification and warning order) -----
 local function FS_AcknowledgeFireMission(arg)
 	local FO_name = arg[1]
-	local FO_callsign = Unit.getByName(arg[1]):getCallsign()
-	local a,b = string.find(FO_callsign, "%d%d")
-	FO_callsign = string.sub(FO_callsign, 1, a - 1) .. " " .. string.sub(FO_callsign, a, a) .. "-" .. string.sub(FO_callsign, b, b)		--put callsign "Enfield11" into format "Enfield 1-1"
+	local FO_callsign = FormatCallsign(Unit.getByName(arg[1]):getCallsign()) or FO_name
 	local FS_name = arg[2]
 	local FS_callsign = FS[arg[2]].callsign
 	local coalition = Unit.getByName(arg[1]):getCoalition()
@@ -891,9 +898,7 @@ local function FS_AcknowledgeFireMission(arg)
 end
 
 local function FO_CallFireMission(arg)
-	local FO_callsign = Unit.getByName(arg[1]):getCallsign()
-	local a,b = string.find(FO_callsign, "%d%d")
-	FO_callsign = string.sub(FO_callsign, 1, a - 1) .. " " .. string.sub(FO_callsign, a, a) .. "-" .. string.sub(FO_callsign, b, b)		--put callsign "Enfield11" into format "Enfield 1-1"
+	local FO_callsign = FormatCallsign(Unit.getByName(arg[1]):getCallsign()) or arg[1]
 	local FS_callsign = FS[arg[2]].callsign
 	local coalition = Unit.getByName(arg[1]):getCoalition()
 	local MissionType = arg[3]
