@@ -1,0 +1,33 @@
+{
+    "nameInUI": "Tomahawk Strike",
+    "descriptionInUI": "Lets players direct BGM-109 Tomahawk strikes from friendly VLS ships onto positions marked on the F10 map.",
+    "defaultValue": false,
+    "specificOptions": [
+        {
+            "nameInUI": "Maximum strike range (km)",
+            "mnemonic": "maxRangeKm",
+            "defaultValue": 1250,
+            "minimumValue": 10,
+            "maximumValue": 2500
+        },
+        {
+            "nameInUI": "Reload time between strikes (seconds)",
+            "mnemonic": "cooldownSeconds",
+            "defaultValue": 300,
+            "minimumValue": 0,
+            "maximumValue": 3600
+        }
+    ],
+    "scriptsWorkOrders": [
+        {
+            "file": "TomahawkStrike.lua",
+            "mnemonic": "tlam"
+        }
+    ],
+    "configurationWorkOrders": [
+        {
+            "file": "tlam-config.lua",
+            "mnemonic": "tlam-config"
+        }
+    ]
+}
