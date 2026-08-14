@@ -23,7 +23,6 @@ class QPylonEditor(QWidget):
         self.flight_member = flight_member
         self.pylon = pylon
         self.game = game
-        self.has_added_clean_item = False
 
         # Create layout
         layout = QHBoxLayout(self)
@@ -35,6 +34,23 @@ class QPylonEditor(QWidget):
         current = self.flight_member.loadout.pylons.get(self.pylon.number)
 
         self.weapon_combo.addItem("None", None)
+
+        # TODO: Fix pydcs to support the <CLEAN> "weapon".
+        # "Clean" means the pylon is fitted but empty, which is not the same as "None"
+        # (no pylon at all). pydcs comments the <CLEAN> entries out of the generated
+        # pylon classes, so they never show up in Pylon.allowed and we have no per-pylon
+        # compatibility data for them. Offer it on every pylon rather than only on the
+        # ones we happen to have seen it on, which matches Pylon.can_equip's decision to
+        # trust any <CLEAN> assignment. Previously this item was only added when a
+        # loadout that already used <CLEAN> on this pylon was displayed, so whether
+        # "Clean" was selectable depended on which preset loadout the flight started
+        # with.
+        clean = Weapon.with_clsid("<CLEAN>")
+        if clean is not None:
+            self.weapon_combo.addItem(clean.name, clean)
+            if current == clean:
+                self.weapon_combo.setCurrentIndex(self.weapon_combo.count() - 1)
+
         if self.game.settings.restrict_weapons_by_date:
             weapons = pylon.available_on(
                 self.game.date, flight.squadron.coalition.faction
@@ -42,10 +58,10 @@ class QPylonEditor(QWidget):
         else:
             weapons = pylon.allowed
         allowed = sorted(weapons, key=operator.attrgetter("name"))
-        for i, weapon in enumerate(allowed):
+        for weapon in allowed:
             self.weapon_combo.addItem(weapon.name, weapon)
             if current == weapon:
-                self.weapon_combo.setCurrentIndex(i + 1)
+                self.weapon_combo.setCurrentIndex(self.weapon_combo.count() - 1)
 
         self.weapon_combo.currentIndexChanged.connect(self.on_pylon_change)
         layout.addWidget(self.weapon_combo, 1)
@@ -105,24 +121,7 @@ class QPylonEditor(QWidget):
             logging.debug(f"Pylon {self.pylon.number} changed to {selected.name}")
 
     def weapon_from_loadout(self, loadout: Loadout) -> Optional[Weapon]:
-        weapon = loadout.pylons.get(self.pylon.number)
-        if weapon is None:
-            return None
-        # TODO: Fix pydcs to support the <CLEAN> "weapon".
-        # These are not exported in the pydcs weapon map, which causes the pydcs pylon
-        # exporter to fail to include them in the supported list. Since they aren't
-        # known to be compatible (and we can't show them as compatible for *every*
-        # pylon, because they aren't), we won't have populated a "Clean" weapon when
-        # creating the selection list, so it's not selectable. To work around this, add
-        # the item to the list the first time it's encountered for the pylon.
-        #
-        # A similar hack exists in Pylon to support forcibly equipping this even when
-        # it's not known to be compatible.
-        if weapon.clsid == "<CLEAN>":
-            if not self.has_added_clean_item:
-                self.weapon_combo.addItem("Clean", weapon)
-                self.has_added_clean_item = True
-        return weapon
+        return loadout.pylons.get(self.pylon.number)
 
     def matching_weapon_name(self, loadout: Loadout) -> str:
         if self.game.settings.restrict_weapons_by_date:
