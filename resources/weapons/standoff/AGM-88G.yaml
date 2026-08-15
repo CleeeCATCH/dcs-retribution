@@ -1,0 +1,6 @@
+name: AGM-88G AARGM-ER
+type: ARM
+year: 2023
+fallback: AGM-88C HARM
+clsids:
+  - "{LAU_118A_AGM-88G}"   # AGM-88G AARGM - Anti-Radiation AGM

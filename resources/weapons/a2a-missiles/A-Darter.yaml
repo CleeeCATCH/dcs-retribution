@@ -1,0 +1,5 @@
+name: A-Darter
+year: 2015
+fallback: AIM-9X
+clsids:
+  - "{A-DARTER}"   # V3E A-Darter IR AAM

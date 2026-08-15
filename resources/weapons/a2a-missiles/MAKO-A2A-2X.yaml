@@ -1,0 +1,5 @@
+name: 2xMAKO Hypersonic AAM
+year: 2028
+fallback: 2xAIM-120D-3
+clsids:
+  - "{BRU_33A_2x_MAKO_A2A_C}"   # 2 x Mako Multi-Mission Hypersonic Missile

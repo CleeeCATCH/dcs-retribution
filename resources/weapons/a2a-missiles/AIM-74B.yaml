@@ -1,0 +1,5 @@
+name: AIM-74B MUTANT
+year: 2030
+fallback: AIM-74A MUTANT
+clsids:
+  - "{AIM-74B}"   # AIM-74B MUTANT - Active Radar AAM

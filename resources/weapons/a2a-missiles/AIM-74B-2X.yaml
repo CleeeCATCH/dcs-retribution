@@ -1,0 +1,5 @@
+name: 2xAIM-74B MUTANT
+year: 2030
+fallback: 2xAIM-74A MUTANT
+clsids:
+  - "{LAU_115_2xAIM-74B}"   # LAU-115 with 2 x LAU-127 AIM-74B MUTANT

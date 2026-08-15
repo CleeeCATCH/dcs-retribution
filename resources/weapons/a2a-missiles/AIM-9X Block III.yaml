@@ -1,0 +1,5 @@
+name: AIM-9X Block III
+year: 2022
+fallback: AIM-9X Block II
+clsids:
+  - "{AIM-9X3}"   # AIM-9X-3 Sidewinder IR AAM

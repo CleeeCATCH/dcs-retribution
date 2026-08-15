@@ -1,0 +1,5 @@
+name: 2xAIM-272A LRAAM
+year: 2028
+fallback: 2xAIM-120D-3
+clsids:
+  - "{LAU_115_2xAIM-272A}"   # LAU-115 with 2 x LAU-127 AIM-272A LRAAM

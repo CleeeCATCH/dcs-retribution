@@ -13,3 +13,4 @@ clsids:
   - "{SUPERHORNET_PYLON_10_MB_MK_BR55_2X_GBU-32}"   #  [ STA 09	  | SUU79 | BRU55   ] - 2x GBU-32(V)2/B - JDAM, 1000lb GPS Guided Bomb
   - "{SUPERHORNET_PYLON_09_MB_MK_1X_GBU-32}"   #  [ STA 09	  | SUU80 | BRU32   ] - 1x GBU-32(V)2/B - JDAM, 1000lb GPS Guided Bomb
   - "{SUPERHORNET_PYLON_10_OB_MK_1X_GBU-32}"   #  [ STA 10	  | SUU80 | BRU32   ] - 1x GBU-32(V)2/B - JDAM, 1000lb GPS Guided Bomb
+  - "{GBU-32}"   # GBU-32 JDAM, 1000lb GPS Guided Bomb

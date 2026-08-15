@@ -1,0 +1,5 @@
+name: AIM-200A Peregrine
+year: 2028
+fallback: AIM-120C
+clsids:
+  - "{AIM-200A}"   # AIM-200A Peregrine Active Radar AAM

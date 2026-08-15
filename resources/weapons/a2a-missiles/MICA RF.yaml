@@ -1,0 +1,7 @@
+name: MICA RF
+year: 1996
+fallback: AIM-120B
+clsids:
+  - "{MICA-RF}"   # MICA NG RF - Active Radar AAM
+  - "{MICA_RF_IRST_LEFT}"   # MICA NG RF + IRST POD
+  - "{MICA_RF_IRST_RIGHT}"   # MICA NG RF + IRST POD

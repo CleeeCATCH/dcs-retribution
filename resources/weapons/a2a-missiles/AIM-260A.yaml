@@ -1,0 +1,7 @@
+name: AIM-260A JATM
+year: 2026
+fallback: AIM-120D-3
+clsids:
+  - "{AIM-260A}"   # AIM-260A JATM - Active Radar AAM
+  - "{AIM_260A_IRST_LEFT}"   # AIM-260A JATM + IRST POD
+  - "{AIM_260A_IRST_RIGHT}"   # AIM-260A JATM + IRST POD

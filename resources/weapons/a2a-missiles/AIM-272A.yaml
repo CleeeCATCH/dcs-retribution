@@ -1,0 +1,7 @@
+name: AIM-272A LRAAM
+year: 2028
+fallback: AIM-120D-3
+clsids:
+  - "{AIM-272A}"   # AIM-272A LRAAM - Active Radar AAM
+  - "{AIM_272A_IRST_LEFT}"   # AIM-272A LRAAM + IRST POD
+  - "{AIM_272A_IRST_RIGHT}"   # AIM-272A LRAAM + IRST POD

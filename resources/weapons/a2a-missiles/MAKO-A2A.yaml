@@ -1,0 +1,5 @@
+name: MAKO Hypersonic AAM
+year: 2028
+fallback: AIM-120D-3
+clsids:
+  - "{MAKO_A2A_C}"   # Mako Multi-Mission Hypersonic Missile - Active Radar AAM

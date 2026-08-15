@@ -1,0 +1,7 @@
+name: AIM-120D-3
+year: 2023
+fallback: AIM-120C
+clsids:
+  - "{AIM-120D-3}"   # AIM-120D-3 - AMRAAM - Active Radar AAM
+  - "{AIM_120D_3_IRST_LEFT}"   # AIM-120D-3 AMRAAM + IRST POD
+  - "{AIM_120D_3_IRST_RIGHT}"   # AIM-120D-3 AMRAAM + IRST POD

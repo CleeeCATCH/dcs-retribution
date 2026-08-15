@@ -1,0 +1,7 @@
+name: 2xAIM-200A Peregrine
+year: 2028
+fallback: 2xAIM-120C
+clsids:
+  - "{AIM200-2XRACK}"   # 2 x AIM-200A Peregrine Active Radar AAM
+  - "{AIM200_2XRACK_IRST_LEFT}"   # 2 x AIM-200A Peregrine + IRST POD
+  - "{AIM200_2XRACK_IRST_RIGHT}"   # 2 x AIM-200A Peregrine + IRST POD

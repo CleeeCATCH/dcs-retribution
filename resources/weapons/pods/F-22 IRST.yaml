@@ -1,0 +1,5 @@
+name: F-22 IRST Sensor Pod
+year: 2005
+clsids:
+  - "{IRST_SENSOR_Pod}"   # IRST Sensor Pod
+  - "{F22_IRST_PAIR}"   # 2 x IRST Sensor Pod

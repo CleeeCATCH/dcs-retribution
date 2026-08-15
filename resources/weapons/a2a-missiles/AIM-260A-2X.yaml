@@ -1,0 +1,6 @@
+name: 2xAIM-260A JATM
+year: 2026
+fallback: 2xAIM-120D-3
+clsids:
+  - "{LAU_115_2xAIM-260A}"   # LAU-115 with 2 x LAU-127 AIM-260A JATM
+  - "{LAU_115_2xAIM-260}"   # LAU-115 with 2 x LAU-127 AIM-260A JATM - Active Radar NGAAM

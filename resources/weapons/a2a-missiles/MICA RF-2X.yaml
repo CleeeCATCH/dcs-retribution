@@ -1,0 +1,5 @@
+name: 2xMICA RF
+year: 1996
+fallback: 2xAIM-120B
+clsids:
+  - "{LAU_115_2xMICA-RF}"   # LAU-115 with 2 x LAU-127 MICA NG - Active Radar AAM

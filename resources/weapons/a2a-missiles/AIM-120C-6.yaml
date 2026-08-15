@@ -1,0 +1,7 @@
+name: AIM-120C-6
+year: 2003
+fallback: AIM-120C
+clsids:
+  - "{AIM-120C-6}"   # AIM-120C-6 - AMRAAM - Active Radar AAM
+  - "{AIM_120C_6_IRST_LEFT}"   # AIM-120C-6 AMRAAM + IRST POD
+  - "{AIM_120C_6_IRST_RIGHT}"   # AIM-120C-6 AMRAAM + IRST POD

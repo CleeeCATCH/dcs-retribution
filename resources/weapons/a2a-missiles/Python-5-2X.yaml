@@ -1,0 +1,5 @@
+name: 2xPython-5
+year: 2006
+fallback: 2xAIM-9X
+clsids:
+  - "{LAU_115_2xPYTHON}"   # LAU-115 with 2 x LAU-127 Python-5 - IR AAM

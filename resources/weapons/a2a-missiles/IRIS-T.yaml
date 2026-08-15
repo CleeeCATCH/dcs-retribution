@@ -1,0 +1,5 @@
+name: IRIS-T
+year: 2005
+fallback: AIM-9X
+clsids:
+  - "{AIM-2000}"   # AIM-2000 IRIS-T IR AAM

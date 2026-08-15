@@ -1,0 +1,8 @@
+name: Meteor
+year: 2016
+fallback: AIM-120C
+clsids:
+  - "{Meteor}"   # Meteor BVRAAM - Active Radar AAM
+  - "{JAS39_Meteor}"   # Meteor BVRAAM Active Rdr AAM
+  - "{LAU_118A_METR}"   # Meteor BVRAAM - Active Radar AAM
+  - "{LAU_118A_MDBA_METEOR}"   # Meteor BVRAAM - Active Radar AAM

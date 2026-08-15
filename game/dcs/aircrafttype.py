@@ -20,6 +20,7 @@ from game.data.units import UnitClass
 from game.dcs.aircraftproperties import PropertyDateGate
 from game.dcs.lasercodeconfig import LaserCodeConfig
 from game.dcs.unittype import UnitType
+from game.modsupport import retribution_id
 from game.persistency import user_custom_weapon_injections_dir
 from game.radio.channels import (
     ApacheChannelNamer,
@@ -671,7 +672,9 @@ class AircraftType(UnitType[Type[FlyingType]]):
 
     @staticmethod
     def _user_weapon_injections(aircraft: Type[FlyingType]) -> None:
-        data_path = user_custom_weapon_injections_dir() / f"{aircraft.id}.yaml"
+        data_path = (
+            user_custom_weapon_injections_dir() / f"{retribution_id(aircraft)}.yaml"
+        )
         if not data_path.exists():
             return
         with data_path.open(encoding="utf-8") as data_file:

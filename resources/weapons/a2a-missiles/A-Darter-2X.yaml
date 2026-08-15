@@ -1,0 +1,5 @@
+name: 2xA-Darter
+year: 2015
+fallback: 2xAIM-9X
+clsids:
+  - "{LAU_115_2xA-DARTER}"   # LAU-115 with 2 x LAU-127 V3E A-Darter - IR AAM

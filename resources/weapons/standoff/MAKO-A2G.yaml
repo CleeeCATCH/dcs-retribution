@@ -1,0 +1,6 @@
+name: MAKO Hypersonic ARM
+type: ARM
+year: 2028
+fallback: AGM-88G AARGM-ER
+clsids:
+  - "{BRU_33A_2x_MAKO_A2G_C}"   # 2 x Mako Multi-Mission Hypersonic Missile - Anti-Radiation AGM

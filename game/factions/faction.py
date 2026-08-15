@@ -33,6 +33,7 @@ from game.dcs.countries import country_with_name
 from game.dcs.groundunittype import GroundUnitType
 from game.dcs.shipunittype import ShipUnitType
 from game.dcs.unittype import UnitType
+from game.modsupport import retribution_id
 from pydcs_extensions import inject_F15I, eject_F15I, eject_F4E, inject_F4E
 from pydcs_extensions.f16i_idf.f16i_idf import inject_F16I, eject_F16I
 
@@ -478,6 +479,8 @@ class Faction:
             inject_F4E()
         if not mod_settings.f22_raptor:
             self.remove_aircraft("F-22A")
+        if not mod_settings.f22_efm:
+            self.remove_aircraft("F-22A_EFM")
         if not mod_settings.f84g_thunderjet:
             self.remove_aircraft("VSN_F84G")
         if not mod_settings.f100_supersabre:
@@ -1001,9 +1004,12 @@ class Faction:
             self.remove_aircraft("F111C")
 
     def remove_aircraft(self, name: str) -> None:
+        # Matched on the Retribution key rather than the DCS type name so that two
+        # airframes sharing a DCS type -- the plain F-22A and the Enhancement Mod one --
+        # can be gated by their own mod settings.
         for aircraft_set in [self.aircraft, self.awacs, self.tankers]:
             for i in list(aircraft_set):
-                if i.dcs_unit_type.id == name:
+                if retribution_id(i.dcs_unit_type) == name:
                     aircraft_set.remove(i)
 
     def remove_aircraft_by_name(self, name: str) -> None:

@@ -1,0 +1,7 @@
+name: AIM-120E
+year: 2030
+fallback: AIM-120D-3
+clsids:
+  - "{AIM-120E}"   # AIM-120E - AMRAAM - Active Radar AAM
+  - "{AIM_120E_IRST_LEFT}"   # AIM-120E AMRAAM + IRST POD
+  - "{AIM_120E_IRST_RIGHT}"   # AIM-120E AMRAAM + IRST POD

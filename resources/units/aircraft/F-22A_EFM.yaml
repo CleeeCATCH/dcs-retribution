@@ -1,0 +1,31 @@
+description: >-
+  The F-22A is an American single-seat, twin-engine, all-weather stealth
+  tactical fighter aircraft developed exclusively for the United States Air Force
+  (USAF). The result of the USAF's Advanced Tactical Fighter (ATF) program, the aircraft
+  was designed primarily as an air superiority fighter, but also has ground attack,
+  electronic warfare, and signal intelligence capabilities. Currently it is viewed
+  as the most advanced fighter in the world.<br /><br />
+
+  This entry is the Enhancement Mod build of the Grinnelli airframe (BHOOP EFM plus
+  the NIGHTSTORM store set). It flies the same DCS unit as the plain F-22A but carries
+  a far wider magazine - AIM-120C-6 through AIM-120E, AIM-260A/B JATM, AIM-272A, Meteor,
+  MAKO, AIM-9X Block II/III and the LAU-115 twin rails on the side bays. Pick it only
+  if the enhancement pack is what you have installed; the stock F-22A entry expects
+  the older store set and its CLSIDs.
+introduced: 2005
+manufacturer: Lockheed Martin
+origin: USA
+price: 44
+role: Stealth Air-Superiority Fighter
+variants:
+  F-22A Raptor (Enhancement Mod): {}
+radios:
+  # Matches the plain F-22A entry; the mod uses the same FC3-derived radio.
+  intra_flight: SCR-522
+  inter_flight: SCR-522
+tasks:
+  BARCAP: 550
+  Escort: 550
+  Fighter sweep: 550
+  Intercept: 550
+  TARCAP: 550

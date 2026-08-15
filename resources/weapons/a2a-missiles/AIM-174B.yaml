@@ -1,0 +1,5 @@
+name: AIM-174B Gunslinger
+year: 2024
+fallback: AIM-120D-3
+clsids:
+  - "{LAU_118_AIM-174B}"   # AIM-174B Gunslinger - Active Radar ULRAAM

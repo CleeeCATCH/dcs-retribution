@@ -1,0 +1,5 @@
+name: Python-5
+year: 2006
+fallback: AIM-9X
+clsids:
+  - "{PYTHON}"   # Python-5 IR AAM

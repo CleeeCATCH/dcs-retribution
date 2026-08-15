@@ -12,6 +12,7 @@ from dcs.unittype import UnitType as DcsUnitType
 from typing_extensions import Self
 
 from game.data.units import UnitClass
+from game.modsupport import retribution_id
 
 DcsUnitTypeT = TypeVar("DcsUnitTypeT", bound=Type[DcsUnitType])
 
@@ -60,15 +61,16 @@ class UnitType(ABC, Generic[DcsUnitTypeT]):
 
     @classmethod
     def _each_variant_of(cls, unit: DcsUnitTypeT) -> Iterator[Self]:
-        data_path = cls._data_directory() / f"{unit.id}.yaml"
+        unit_id = retribution_id(unit)
+        data_path = cls._data_directory() / f"{unit_id}.yaml"
         if not data_path.exists():
-            logging.warning(f"No data for {unit.id}; it will not be available")
+            logging.warning(f"No data for {unit_id}; it will not be available")
             return
 
         with data_path.open(encoding="utf-8") as data_file:
             data = yaml.safe_load(data_file)
 
-        for variant_id, variant_data in data.get("variants", {unit.id: {}}).items():
+        for variant_id, variant_data in data.get("variants", {unit_id: {}}).items():
             if variant_data is None:
                 variant_data = {}
             yield cls._variant_from_dict(unit, variant_id, data | variant_data)
