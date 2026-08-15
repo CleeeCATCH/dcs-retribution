@@ -26,6 +26,7 @@
 * **[Campaigns]** Motorpool placement is Garage_A-anchored and empty reserve pools are excluded from attack planning; updated placement measurements are documented.
 * **[UX]** Add the ability to filter campaigns by version, map, and performance
 * **[Engine]** Bump campaign version to 10.9 for motorpool support
+* **[Modding]** Update UH-60L mod to v2.1.5 including MH-60L DAP
 
 ## Fixes
 * **[UX]** "Clean" (pylon fitted but empty, as opposed to "None") is now offered on every pylon in the payload editor. It was previously added to a pylon's dropdown only when the loadout already on display happened to use it there, so whether it could be selected depended on which preset the flight started with — the F-16C centerline could be set clean from a BARCAP/TARCAP/Escort loadout but not from a CAS/Strike/SEAD one.
