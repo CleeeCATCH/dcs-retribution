@@ -647,14 +647,53 @@ local function FO_TransmitMethod(arg)
 	missionCommands.addSubMenuForGroup(Mission[N].FO_id, "Fire Support")
 end
 
+--Work out which salvo sizes to offer. The configured list suits a gun battery
+--holding hundreds of shells and overshoots a rocket battery's magazine
+--entirely: an M270 carries twelve rockets, so offering 20, 30 and 40 asks for
+--rounds that do not exist. Cap the list at what is actually loaded, and when
+--little or nothing fits, grade the options off the magazine instead.
+local function SalvoOptions(GroupName)
+	local available = ReturnArtilleryAmmo(GroupName)
+	if available <= 0 then
+		return {}
+	end
+
+	local configured = FS[GroupName].SalvoSize
+	if type(configured) ~= "table" then
+		return {math.min(configured, available)}
+	end
+
+	local offered = {}
+	for n = 1, #configured do
+		if configured[n] <= available and #offered < 9 then
+			table.insert(offered, configured[n])
+		end
+	end
+
+	if #offered < 2 then
+		offered = {}
+		for _, size in pairs({math.floor(available / 4), math.floor(available / 2), available}) do
+			size = math.max(1, size)
+			local duplicate = false
+			for _, existing in pairs(offered) do
+				if existing == size then
+					duplicate = true
+				end
+			end
+			if not duplicate then
+				table.insert(offered, size)
+			end
+		end
+	end
+
+	return offered
+end
+
 local function InsertSalvoSize(N)
 	local roundsN = FS[Mission[N].FS_name].SalvoSize
 	if type(roundsN) == "table" then
-		for n = 1, #roundsN do
-			missionCommands.addCommandForGroup(Mission[N].FO_id, roundsN[n] .. " rounds", {"Fire Support"}, FO_TransmitMethod, {N, roundsN[n]})
-			if n == 9 then
-				break
-			end
+		for _, size in pairs(SalvoOptions(Mission[N].FS_name)) do
+			missionCommands.addCommandForGroup(Mission[N].FO_id, size .. " rounds", {"Fire Support"}, FO_TransmitMethod, {N, size})
 		end
 		missionCommands.addCommandForGroup(Mission[N].FO_id, "Cancel Call For Fire", {"Fire Support"}, FO_EndFireMission, N)
 	else
