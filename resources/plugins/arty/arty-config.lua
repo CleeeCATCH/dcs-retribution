@@ -17,6 +17,17 @@ if dcsRetribution then
             cg_arty_options.user_quantity = dcsRetribution.plugins.arty.user_quantity
             cg_arty_options.user_spread = dcsRetribution.plugins.arty.user_spread
             cg_arty_options.user_spottingDistance = dcsRetribution.plugins.arty.user_spottingDistance
+
+            -- The script copied cg_arty_options into locals when it loaded, which
+            -- happened before this file ran. Without this the values above are
+            -- written to a table nothing reads again.
+            cg_arty_applyOptions()
+
+            env.info("DCSRetribution|Carsten's Arty Spotter plugin - Applied settings: "
+                .. cg_arty_options.user_quantity .. " rounds, "
+                .. cg_arty_options.user_spread .. " m spread, "
+                .. cg_arty_options.user_fireDelay .. " s delay, "
+                .. cg_arty_options.user_spottingDistance .. " km spotting distance")
         end
     end
 end

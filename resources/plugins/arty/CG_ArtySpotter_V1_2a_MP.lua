@@ -35,6 +35,20 @@ local quantity_effect = user_quantity	-- Rounds expanded during fire for effect
 local tntEquivalent = 12				-- TNT equivalent for explosion
 local fireDelay = user_fireDelay		-- delay til artillery fires in seconds
 
+-- Retribution injects its configuration file after this script has already run,
+-- by which point the settings above have been copied out of cg_arty_options.
+-- The configuration calls this to pick up the values it actually set; without
+-- it every option in the plugin's UI is silently discarded.
+function cg_arty_applyOptions()
+	user_fireDelay = cg_arty_options.user_fireDelay or user_fireDelay
+	user_quantity = cg_arty_options.user_quantity or user_quantity
+	user_spread = cg_arty_options.user_spread or user_spread
+	user_spottingDistance = cg_arty_options.user_spottingDistance or user_spottingDistance
+
+	quantity_effect = user_quantity
+	fireDelay = user_fireDelay
+end
+
 local firstShotFired = true
 
 local markerSet = false
@@ -56,7 +70,7 @@ local markerText = ""
 
 local artyTasks = {}
 
-local menuItems = false
+local menuItems = {}					-- per player: a single flag meant only the first spotter ever got a menu
 
 -- optional arty enabled user flag, for use in triggers, if the player wants to
 
@@ -102,7 +116,7 @@ end
 
 local function addMenuItems(groupId, initiatorName)
 
-	menuItems = true
+	menuItems[initiatorName] = true
 
     local artyTask = artyTasks[initiatorName]
 	
@@ -145,8 +159,8 @@ local function removeMenuItems(initiatorName)
         missionCommands.removeItemForGroup(artyTasks[initiatorName].groupID, artyTask.ArtyMenu)
     end
 	
-	menuItems = false
-	
+	menuItems[initiatorName] = false
+
 end
 
 -- Calculate distance
@@ -172,9 +186,9 @@ local function shellZone ( _initiatorName )
 	trigger.action.outTextForUnit( artyTasks[_initiatorName].unitID, "Arty Task Created - fire incoming "..quantity.." rounds", 10)
 	
 	if artyCall == 1 then
-		artyRadius = 5
+		artyRadius = 5								-- single spotting round lands tight
 	else
-		artyRadius = 50
+		artyRadius = user_spread					-- fire for effect spreads over the configured radius
 	end
 	
 	local _shellPos = artyTasks[_initiatorName].pos
@@ -609,7 +623,7 @@ local function onPlayerAddMarker(event)
 					local groupId = event.initiator:getGroup():getID()
 					artyTasks[initiatorName].groupID = groupId
 				
-					if menuItems == false then 
+					if not menuItems[initiatorName] then
 						addMenuItems(groupId, initiatorName)
 					end
 		
@@ -682,7 +696,7 @@ local function onPlayerAddMarker(event)
 						local groupId = event.initiator:getGroup():getID()
 						artyTasks[initiatorName].groupID = groupId
 						
-						if menuItems == false then 
+						if not menuItems[initiatorName] then
 							addMenuItems(groupId, initiatorName)
 						end
 					end
