@@ -252,7 +252,7 @@ local function FO_EndFireMission(N)
 		timer.scheduleFunction(AcknowlegdeReply, nil, timer.getTime() + 3)
 	end
 	
-	missionCommands.removeItemForGroup(Mission[N].FO_id, "Fire Support")
+	missionCommands.removeItemForGroup(Mission[N].FO_id, {"Fire Support"})
 	missionCommands.addSubMenuForGroup(Mission[N].FO_id, "Fire Support")
 end
 
@@ -284,7 +284,7 @@ local function FireMission(N, expendQty)
 				Mission[N].idle = nil
 			else
 				FS[Mission[N].FS_name].status = "prepare fire"
-				missionCommands.removeItemForGroup(Mission[N].FO_id, "Fire Support")
+				missionCommands.removeItemForGroup(Mission[N].FO_id, {"Fire Support"})
 				missionCommands.addSubMenuForGroup(Mission[N].FO_id, "Fire Support")
 				missionCommands.addCommandForGroup(Mission[N].FO_id, "Check Fire", {"Fire Support"}, FO_EndFireMission, N)
 			
@@ -370,7 +370,7 @@ end
 --repeat the last salvo
 local function FO_RepeatFireMission(N)
 	Mission[N].idle = timer.getTime() + 300
-	missionCommands.removeItemForGroup(Mission[N].FO_id, "Fire Support")
+	missionCommands.removeItemForGroup(Mission[N].FO_id, {"Fire Support"})
 	missionCommands.addSubMenuForGroup(Mission[N].FO_id, "Fire Support")
 	
 	trigger.action.outTextForCoalition(Mission[N].coalition, Mission[N].FO_callsign .. ": Repeat, over.", 10)
@@ -389,7 +389,7 @@ end
 --adjust the next salvo
 local function FO_AdjustFire(arg)
 	Mission[arg[1]].idle = timer.getTime() + 300
-	missionCommands.removeItemForGroup(Mission[arg[1]].FO_id, "Fire Support")
+	missionCommands.removeItemForGroup(Mission[arg[1]].FO_id, {"Fire Support"})
 	missionCommands.addSubMenuForGroup(Mission[arg[1]].FO_id, "Fire Support")
 	
 	if arg[2] == "NORTH" then
@@ -432,7 +432,7 @@ end
 
 --radio menu after salvo impact listing options: adjust impact point, repeat mission, end mission
 local function FO_AdjustFireRadioMenu(N)
-	missionCommands.removeItemForGroup(Mission[N].FO_id, "Fire Support")
+	missionCommands.removeItemForGroup(Mission[N].FO_id, {"Fire Support"})
 	missionCommands.addSubMenuForGroup(Mission[N].FO_id, "Fire Support")
 	if Mission[N].MissionType == "adjust fire" and Mission[N].lastRoundN == 1 then
 		missionCommands.addCommandForGroup(Mission[N].FO_id, "Fire for effect", {"Fire Support"}, FO_AdjustFire, {N, "NORTH", 0, "WEST", 0, "fire for effect"})
@@ -643,7 +643,7 @@ local function FO_TransmitMethod(arg)
 	trigger.action.outTextForCoalition(Mission[N].coalition, Mission[N].FO_callsign .. text, 15)
 	trigger.action.outSoundForCoalition(Mission[N].coalition, SoundFilename)
 	timer.scheduleFunction(FS_AcknowledgeMethod, N, timer.getTime() + 5)
-	missionCommands.removeItemForGroup(Mission[N].FO_id, "Fire Support")
+	missionCommands.removeItemForGroup(Mission[N].FO_id, {"Fire Support"})
 	missionCommands.addSubMenuForGroup(Mission[N].FO_id, "Fire Support")
 end
 
@@ -688,7 +688,7 @@ local function FO_TransmitTargetLocation(arg)
 	trigger.action.outTextForCoalition(Mission[N].coalition, Mission[N].FO_callsign .. ": Grid " .. Mission[N].grid .. ", over.", 15)
 	trigger.action.outSoundForCoalition(Mission[N].coalition, SoundFilename)
 	timer.scheduleFunction(FS_AcknowledgeTargetLocation, N, timer.getTime() + 5)
-	missionCommands.removeItemForGroup(Mission[N].FO_id, "Fire Support")
+	missionCommands.removeItemForGroup(Mission[N].FO_id, {"Fire Support"})
 	missionCommands.addSubMenuForGroup(Mission[N].FO_id, "Fire Support")
 end
 
@@ -841,7 +841,7 @@ local function FO_DetermineTargetLoction(N)
 
 	----- Main Menu -----
 	function TargetLocationMenu()
-		missionCommands.removeItemForGroup(Mission[N].FO_id, "Fire Support")
+		missionCommands.removeItemForGroup(Mission[N].FO_id, {"Fire Support"})
 		missionCommands.addSubMenuForGroup(Mission[N].FO_id, "Fire Support")
 		missionCommands.addSubMenuForGroup(Mission[N].FO_id, "Transmit Target Location", {"Fire Support"})
 		missionCommands.addCommandForGroup(Mission[N].FO_id, "Cancel Call For Fire", {"Fire Support"}, FO_EndFireMission, N)
@@ -912,7 +912,7 @@ end
 ----- Initialize Radiomenu -----
 function PopulateFreshRadioMenu(FO_name)
 	if Unit.getByName(FO_name) then
-		missionCommands.removeItemForGroup(FO[FO_name].id, "Fire Support")
+		missionCommands.removeItemForGroup(FO[FO_name].id, {"Fire Support"})
 		missionCommands.addSubMenuForGroup(FO[FO_name].id, "Fire Support")
 		
 		for FS_name,v in pairs(FS) do

@@ -209,8 +209,13 @@ function TLAM.BuildMenu(unitName)
 	local groupID = observer.id
 	local coalitionId = unit:getCoalition()
 
-	missionCommands.removeItemForGroup(groupID, TLAM.MenuName)
+	-- Remove by the path DCS handed back, never by name. A non-table path
+	-- resolves to the menu root, which wipes every other script's items too.
+	if observer.rootPath then
+		missionCommands.removeItemForGroup(groupID, observer.rootPath)
+	end
 	local root = missionCommands.addSubMenuForGroup(groupID, TLAM.MenuName)
+	observer.rootPath = root
 
 	-- Rebuilding is how a player picks up markers placed since the menu was last drawn.
 	missionCommands.addCommandForGroup(groupID, "Refresh target list", root, TLAM.BuildMenu, unitName)
