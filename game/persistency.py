@@ -275,6 +275,11 @@ class MigrationUnpickler(pickle.Unpickler):
         if module == "pydcs_extensions.f4b.f4b":
             return pydcs_extensions.f4
 
+        if module.startswith("pydcs_extensions.bandit_clouds"):
+            # Bandit's clouds were replaced by ATMOS X, which occupies the same
+            # preset slots and uses the same member names.
+            return pydcs_extensions.AtmosXClouds
+
         if module == "pydcs_extensions.irondome.irondome":
             if name in ["I9K57_URAGAN", "I9K51_GRAD", "I9K58_SMERCH"]:
                 return None

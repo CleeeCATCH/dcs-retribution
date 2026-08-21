@@ -149,6 +149,7 @@ class NewGameWizard(QtWidgets.QWizard):
         logging.info("New campaign theater: %s", theater.terrain.name)
 
         settings = self.settings_page.settings_widget.settings
+        settings.apply_mod_cloud_presets()
 
         generator = GameGenerator(
             blue_faction,
