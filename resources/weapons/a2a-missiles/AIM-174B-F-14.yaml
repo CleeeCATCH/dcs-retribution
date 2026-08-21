@@ -1,0 +1,13 @@
+# Same missile as AIM-174B.yaml, split into its own group purely so the F-14 can
+# fall back to the Phoenix. The LAU-118 CLSID in AIM-174B.yaml is carried by the
+# F-22A Enhancement Mod, which cannot equip an AIM-54 -- pointing the shared group
+# at one empties that pylon entirely before 2024 instead of degrading to an AMRAAM.
+# The group name is internal; the loadout UI shows the pydcs name, so both groups
+# still display as "AIM-174B Gunslinger".
+name: AIM-174B Gunslinger (F-14)
+year: 2024
+fallback: AIM-54C-MK47
+clsids:
+  - "{SHOULDER AIM_174B R}" # F-14B(U) shoulder station 8B
+  - "{SHOULDER AIM_174B L}" # F-14B(U) shoulder station 1B
+  - "{AIM_174B}"            # F-14B(U) tunnel pallet stations 3-6

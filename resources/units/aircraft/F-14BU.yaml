@@ -27,9 +27,25 @@ variants:
 # Wingtip AIM-9X rail added by the "AIM-54C+ AND AIM-9X" mod. Pylon 1 is station 1A
 # and pylon 10 is station 8A -- the only two carrying the LAU-138 wingtip rail. The
 # CLSID itself is injected by pydcs_extensions/f14_aim9x.
+# AIM-174B Gunslinger added by the "F-14 AIM-174B" mod (needs the "Definitive
+# AMRAAM" mod for the model). Pylons 2 and 9 are shoulder stations 1B and 8B;
+# pylons 4-7 are tunnel pallet stations 3, 4, 5 and 6. CLSIDs injected by
+# pydcs_extensions/f14_aim174b.
 weapon_injections:
   1:
     - "{LAU-138 wtip - AIM-9X}"
+  2:
+    - "{SHOULDER AIM_174B L}"
+  4:
+    - "{AIM_174B}"
+  5:
+    - "{AIM_174B}"
+  6:
+    - "{AIM_174B}"
+  7:
+    - "{AIM_174B}"
+  9:
+    - "{SHOULDER AIM_174B R}"
   10:
     - "{LAU-138 wtip - AIM-9X}"
 radios:
