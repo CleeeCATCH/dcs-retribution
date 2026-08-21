@@ -1,6 +1,7 @@
 # Retribution v1.6.0
 
 ## Features/Improvements
+* **[Modding]** Replaced Bandit's cloud presets with the ATMOS X mod's presets (v1.2, presets 35-88). The campaign option is now "Use ATMOS X clouds"; existing saves keep whichever way the old toggle was set. Modded presets that carry precipitation are now only rolled for rainy weather, and modded presets are registered when a campaign is created or loaded rather than only after the settings window has been opened.
 * **[Kneeboard]** Use a light-grey daytime kneeboard background instead of near-white, to avoid glare under HDR / Auto-HDR while staying readable in daylight.
 * **[UX]** Hovering a friendly flight's route line on the map highlights it in yellow, and clicking it selects that flight's package (and the flight) in the ATO sidebar.
 * **[UX]** Press Delete with a package selected in the Packages list to cancel it, making it quick to clear several packages in a row.

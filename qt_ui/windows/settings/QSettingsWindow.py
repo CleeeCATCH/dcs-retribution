@@ -40,7 +40,6 @@ from game.settings import (
 )
 from game.settings.ISettingsContainer import SettingsContainer
 from game.sim import GameUpdateEvents
-from pydcs_extensions import BanditClouds
 from qt_ui.widgets.QLabeledWidget import QLabeledWidget
 from qt_ui.widgets.spinsliders import FloatSpinSlider, TimeInputs
 from qt_ui.windows.GameUpdateSignal import GameUpdateSignal
@@ -360,10 +359,7 @@ class QSettingsWindow(QDialog):
         super().closeEvent(event)
 
     def _handle_mod_settings(self) -> None:
-        if self.game.settings.use_bandit_clouds:
-            BanditClouds.activate()
-        else:
-            BanditClouds.deactivate()
+        self.game.settings.apply_mod_cloud_presets()
 
 
 class QSettingsWidget(QtWidgets.QWizardPage, SettingsContainer):

@@ -592,12 +592,16 @@ class Settings:
             "assigned to their primary task."
         ),
     )
-    use_bandit_clouds: bool = boolean_option(
-        "Use Bandit's clouds",
+    use_atmos_x_clouds: bool = boolean_option(
+        "Use ATMOS X clouds",
         page=CAMPAIGN_MANAGEMENT_PAGE,
         section=GENERAL_SECTION,
         default=False,
-        detail=("If checked, Bandit's cloud presets will become available."),
+        detail=(
+            "If checked, the cloud presets of the ATMOS X mod (presets 35-88) will "
+            "become available. Requires the mod to be installed, otherwise DCS will "
+            "not know the presets and will fall back to clear skies."
+        ),
     )
 
     # Pilots and Squadrons
@@ -1518,12 +1522,28 @@ class Settings:
         from game.plugins import LuaPluginManager
 
         LuaPluginManager().load_settings(self)
+        self.apply_mod_cloud_presets()
+
+    def apply_mod_cloud_presets(self) -> None:
+        """Register or unregister modded cloud presets to match these settings.
+
+        Cloud presets live in a global pydcs database, so they have to be synced
+        whenever settings are loaded or changed, not just when the settings
+        window is closed.
+        """
+        from pydcs_extensions import AtmosXClouds
+
+        if self.use_atmos_x_clouds:
+            AtmosXClouds.activate()
+        else:
+            AtmosXClouds.deactivate()
 
     @staticmethod
     def deserialize_state_dict(state: dict[str, Any]) -> dict[str, Any]:
         # restore Enum & timedelta types
         s = Settings()
         Settings._migrate_legacy_fast_forward(state)
+        Settings._migrate_legacy_cloud_mod(state)
         for key, value in list(state.items()):
             default = s.__dict__.get(key)
             if isinstance(default, Enum):
@@ -1564,6 +1584,18 @@ class Settings:
             if isinstance(restored, enum_cls):
                 return restored
         return None
+
+    @staticmethod
+    def _migrate_legacy_cloud_mod(state: dict[str, Any]) -> None:
+        """Map the old Bandit's clouds toggle onto the ATMOS X one.
+
+        Bandit's cloud presets were replaced by ATMOS X, which occupies the same
+        preset slots. Saves made before the swap carry ``use_bandit_clouds``;
+        carry the user's choice over so modded clouds stay enabled (or not).
+        """
+        legacy = state.pop("use_bandit_clouds", None)
+        if legacy is not None and "use_atmos_x_clouds" not in state:
+            state["use_atmos_x_clouds"] = legacy
 
     @staticmethod
     def _migrate_legacy_fast_forward(state: dict[str, Any]) -> None:
