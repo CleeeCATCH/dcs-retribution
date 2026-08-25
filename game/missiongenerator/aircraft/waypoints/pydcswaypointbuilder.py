@@ -6,7 +6,7 @@ from typing import Any, Iterable, Union
 from dcs import Mission
 from dcs.planes import AJS37, F_14A_135_GR, F_14B, JF_17, F_15ESE
 from dcs.point import MovingPoint, PointAction
-from dcs.task import RunScript
+from dcs.task import OptECMUsing, RunScript
 from dcs.unitgroup import FlyingGroup
 
 from game.ato import Flight, FlightWaypoint
@@ -181,6 +181,17 @@ class PydcsWaypointBuilder:
             self.group.units[0].unit_type in (F_14A_135_GR, F_14B)
         ):
             self.group.add_nav_target_point(self.waypoint.position, "IP")
+
+    def set_ecm_using(self, waypoint: MovingPoint, value: OptECMUsing.Values) -> None:
+        """Sets the ECM using option from this waypoint onwards.
+
+        Does nothing when the campaign is configured to never use ECM. The group
+        already has the never use option set at its first waypoint in that case, and
+        appending anything here would override it.
+        """
+        if self.flight.coalition.game.settings.ai_never_use_ecm:
+            return
+        waypoint.tasks.append(OptECMUsing(value=value))
 
     def defensive_jamming(self, waypoint: MovingPoint, action: str) -> None:
         # Explodes incoming missiles within the jamming bubble through the EW-Jamming script

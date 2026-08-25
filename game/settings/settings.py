@@ -1170,6 +1170,18 @@ class Settings:
             " and reapplied at split/racetrack end for applicable flights. "
         ),
     )
+    ai_never_use_ecm: bool = boolean_option(
+        "All flights never use ECM",
+        MISSION_GENERATOR_PAGE,
+        GAMEPLAY_SECTION,
+        default=False,
+        detail=(
+            'Sets the "ECM using: Never use" group option on every generated flight of '
+            "both coalitions, and suppresses the per-waypoint ECM tasks that are "
+            "normally added for SEAD/DEAD/strike ingress, join and split points. "
+            "Does not affect the EWRJ plugin's script-based jamming."
+        ),
+    )
     dynamic_slots: bool = boolean_option(
         "Dynamic slots",
         MISSION_GENERATOR_PAGE,

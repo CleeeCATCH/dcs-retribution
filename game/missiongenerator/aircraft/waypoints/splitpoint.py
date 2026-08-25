@@ -24,8 +24,7 @@ class SplitPointBuilder(PydcsWaypointBuilder):
             # so best choice is to not let them perform jamming for now.
 
             # Let the AI use ECM to defend themselves.
-            ecm_option = OptECMUsing(value=OptECMUsing.Values.UseIfOnlyLockByRadar)
-            waypoint.tasks.append(ecm_option)
+            self.set_ecm_using(waypoint, OptECMUsing.Values.UseIfOnlyLockByRadar)
 
         if self.flight.is_helo:
             waypoint.tasks.append(OptFormation.rotary_wedge())

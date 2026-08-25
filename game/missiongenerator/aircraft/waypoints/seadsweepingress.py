@@ -14,8 +14,7 @@ class SeadSweepIngressBuilder(PydcsWaypointBuilder):
     def add_tasks(self, waypoint: MovingPoint) -> None:
         self.register_special_ingress_points()
         # Preemptively use ECM to better avoid getting swatted.
-        ecm_option = OptECMUsing(value=OptECMUsing.Values.UseIfDetectedLockByRadar)
-        waypoint.tasks.append(ecm_option)
+        self.set_ecm_using(waypoint, OptECMUsing.Values.UseIfDetectedLockByRadar)
 
         waypoint.add_task(
             ControlledTask(

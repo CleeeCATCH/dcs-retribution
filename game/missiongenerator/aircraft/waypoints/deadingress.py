@@ -22,8 +22,7 @@ class DeadIngressBuilder(PydcsWaypointBuilder):
             return
 
         # Preemptively use ECM to better avoid getting swatted.
-        ecm_option = OptECMUsing(value=OptECMUsing.Values.UseIfDetectedLockByRadar)
-        waypoint.tasks.append(ecm_option)
+        self.set_ecm_using(waypoint, OptECMUsing.Values.UseIfDetectedLockByRadar)
 
         for group in target.groups:
             miz_group = self.mission.find_group(group.group_name)

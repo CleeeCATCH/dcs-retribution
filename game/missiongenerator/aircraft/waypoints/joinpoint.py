@@ -71,22 +71,19 @@ class JoinPointBuilder(PydcsWaypointBuilder):
             if self.flight.flight_type == FlightType.SEAD_ESCORT:
                 self.handle_sead_escort(doctrine, waypoint)
                 # Let the AI use ECM to preemptively defend themselves.
-                ecm_option = OptECMUsing(
-                    value=OptECMUsing.Values.UseIfDetectedLockByRadar
+                self.set_ecm_using(
+                    waypoint, OptECMUsing.Values.UseIfDetectedLockByRadar
                 )
-                waypoint.tasks.append(ecm_option)
             else:
                 # Let the AI use ECM to defend themselves.
-                ecm_option = OptECMUsing(value=OptECMUsing.Values.UseIfOnlyLockByRadar)
-                waypoint.tasks.append(ecm_option)
+                self.set_ecm_using(waypoint, OptECMUsing.Values.UseIfOnlyLockByRadar)
         elif not self.flight.flight_type.is_air_to_air:
             # Capture any non A/A type to avoid issues with SPJs that use the primary radar such as the F/A-18C.
             # You can bully them with STT to not be able to fire radar guided missiles at you,
             # so best choice is to not let them perform jamming for now.
 
             # Let the AI use ECM to defend themselves.
-            ecm_option = OptECMUsing(value=OptECMUsing.Values.UseIfOnlyLockByRadar)
-            waypoint.tasks.append(ecm_option)
+            self.set_ecm_using(waypoint, OptECMUsing.Values.UseIfOnlyLockByRadar)
 
     def handle_sead_escort(self, doctrine: Doctrine, waypoint: MovingPoint) -> None:
         if isinstance(self.flight.package.target, NavalControlPoint):

@@ -13,6 +13,7 @@ from dcs.task import (
     FighterSweep,
     GroundAttack,
     Nothing,
+    OptECMUsing,
     OptROE,
     OptRTBOnBingoFuel,
     OptRTBOnOutOfAmmo,
@@ -176,6 +177,11 @@ class AircraftBehavior:
             group.points[0].tasks.append(OptJettisonEmptyTanks())
         # Do not restrict afterburner.
         # https://forums.eagle.ru/forum/english/digital-combat-simulator/dcs-world-2-5/bugs-and-problems-ai/ai-ad/7121294-ai-stuck-at-high-aoa-after-making-sharp-turn-if-afterburner-is-restricted
+
+        if flight.coalition.game.settings.ai_never_use_ecm:
+            # The per-waypoint ECM tasks that would override this are suppressed by
+            # PydcsWaypointBuilder.set_ecm_using.
+            group.points[0].tasks.append(OptECMUsing(value=OptECMUsing.Values.NeverUse))
 
         if flight.client_count and flight.flight_type != FlightType.AEWC:
             # configure AI radio usage for player flights to avoid AI spamming the channel

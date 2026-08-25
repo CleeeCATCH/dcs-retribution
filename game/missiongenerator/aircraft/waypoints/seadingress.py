@@ -30,8 +30,7 @@ class SeadIngressBuilder(PydcsWaypointBuilder):
             return
 
         # Preemptively use ECM to better avoid getting swatted.
-        ecm_option = OptECMUsing(value=OptECMUsing.Values.UseIfDetectedLockByRadar)
-        waypoint.tasks.append(ecm_option)
+        self.set_ecm_using(waypoint, OptECMUsing.Values.UseIfDetectedLockByRadar)
 
         # Avoid having AI burn all of its fuel while loitering until next weapon release
         burn_restrict = OptRestrictAfterburner(True)
