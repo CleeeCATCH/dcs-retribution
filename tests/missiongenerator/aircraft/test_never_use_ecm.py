@@ -46,7 +46,7 @@ def _ecm_tasks(tasks: list[Any]) -> list[Any]:
 
 def _builder(never_use_ecm: bool) -> PydcsWaypointBuilder:
     builder = PydcsWaypointBuilder.__new__(PydcsWaypointBuilder)
-    builder.flight = _flight(never_use_ecm)  # type: ignore[assignment]
+    builder.flight = _flight(never_use_ecm)
     return builder
 
 
