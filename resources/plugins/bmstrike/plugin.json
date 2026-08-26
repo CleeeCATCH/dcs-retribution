@@ -1,0 +1,64 @@
+{
+    "nameInUI": "Ballistic Missile Strike",
+    "descriptionInUI": "Lets players direct ballistic missile strikes (Scud-B, 9K720 Iskander, ATACMS, ...) from friendly launchers onto positions marked on the F10 map.",
+    "defaultValue": false,
+    "specificOptions": [
+        {
+            "nameInUI": "Maximum rounds per fire mission",
+            "mnemonic": "maxRoundsPerMission",
+            "defaultValue": 2,
+            "minimumValue": 1,
+            "maximumValue": 12
+        },
+        {
+            "nameInUI": "Reload time between fire missions (seconds)",
+            "mnemonic": "cooldownSeconds",
+            "defaultValue": 600,
+            "minimumValue": 0,
+            "maximumValue": 3600
+        },
+        {
+            "nameInUI": "Give up if no round is fired within (seconds)",
+            "mnemonic": "launchTimeoutSeconds",
+            "defaultValue": 900,
+            "minimumValue": 120,
+            "maximumValue": 3600
+        },
+        {
+            "nameInUI": "Aimpoint scatter (meters)",
+            "mnemonic": "impactRadiusMeters",
+            "defaultValue": 50,
+            "minimumValue": 0,
+            "maximumValue": 1000
+        },
+        {
+            "nameInUI": "Maximum strike range override (km, 0 = use each launcher's own range)",
+            "mnemonic": "maxRangeKm",
+            "defaultValue": 0,
+            "minimumValue": 0,
+            "maximumValue": 2000
+        },
+        {
+            "nameInUI": "Wake up friendly launchers at mission start",
+            "mnemonic": "preheatLaunchers",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "Reserve friendly launchers for players (clear their AI fire tasks)",
+            "mnemonic": "reserveForPlayers",
+            "defaultValue": true
+        }
+    ],
+    "scriptsWorkOrders": [
+        {
+            "file": "BallisticMissileStrike.lua",
+            "mnemonic": "bmstrike"
+        }
+    ],
+    "configurationWorkOrders": [
+        {
+            "file": "bmstrike-config.lua",
+            "mnemonic": "bmstrike-config"
+        }
+    ]
+}

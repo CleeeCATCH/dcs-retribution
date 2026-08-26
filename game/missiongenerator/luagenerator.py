@@ -4,7 +4,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import Any, TYPE_CHECKING, Optional
 
 from dcs import Mission
 from dcs.action import DoScript, DoScriptFile
@@ -13,6 +13,7 @@ from dcs.triggers import TriggerStart
 
 from game.ato import FlightType
 from game.data.units import UnitClass
+from game.dcs.unittype import UnitType
 from game.dcs.aircrafttype import AircraftType
 from game.plugins import LuaPluginManager
 from game.theater import TheaterGroundObject
@@ -237,6 +238,13 @@ class LuaGenerator:
         ship_artillery_group_collection = artillery_object.get_or_create_item(
             "shipArtillery"
         )
+        # Ballistic/theatre missile launchers (Scud-B, 9K720 Iskander, ATACMS, ...).
+        # They are UnitClass.MISSILE rather than ARTILLERY, so they need their own
+        # collection: the artillery scripts fire them with the wrong weapon flags,
+        # and their ranges are two orders of magnitude longer.
+        ballistic_missile_group_collection = artillery_object.get_or_create_item(
+            "ballisticMissiles"
+        )
 
         # DCS unit names are prefixed with a zero-padded ID, which makes for a
         # terrible radio callsign. Derive a readable, unique one instead so
@@ -252,6 +260,22 @@ class LuaGenerator:
             used_callsigns.add(callsign)
             return callsign
 
+        def add_ballistic_missile_group(
+            group_name: str, display_name: str, unit_type: UnitType[Any]
+        ) -> None:
+            # threat_range is the launcher's maximum firing range; a launcher with
+            # none (the V-1 ramp) cannot be tasked in DCS, so leave it out of the
+            # radio menu entirely.
+            max_range = getattr(unit_type.dcs_unit_type, "threat_range", 0)
+            if not max_range:
+                return
+            ballistic_missile_group = ballistic_missile_group_collection.add_item()
+            ballistic_missile_group.add_key_value("groupName", group_name)
+            ballistic_missile_group.add_key_value(
+                "callsign", artillery_callsign(display_name)
+            )
+            ballistic_missile_group.add_key_value("maxRangeMeters", str(int(max_range)))
+
         # First add all artillery units that are theater objects (mostly ships)
         for ground_object in self.game.theater.ground_objects:
             for group in ground_object.groups:
@@ -266,6 +290,10 @@ class LuaGenerator:
                     ground_artillery_group.add_key_value("groupName", group.group_name)
                     ground_artillery_group.add_key_value(
                         "callsign", artillery_callsign(group.name)
+                    )
+                elif group_first_unit.unit_type.unit_class == UnitClass.MISSILE:
+                    add_ballistic_missile_group(
+                        group.group_name, group.name, group_first_unit.unit_type
                     )
                 elif group_first_unit.unit_type.unit_class in (
                     UnitClass.CRUISER,
@@ -292,6 +320,12 @@ class LuaGenerator:
                 ground_artillery_group.add_key_value(
                     "callsign",
                     artillery_callsign(frontline_group.unit_type.display_name),
+                )
+            elif frontline_group.unit_type.unit_class == UnitClass.MISSILE:
+                add_ballistic_missile_group(
+                    frontline_group.group_name,
+                    frontline_group.unit_type.display_name,
+                    frontline_group.unit_type,
                 )
 
         # Add forward observer (FO) (TODO: maybe adding new flight type "Foward Observer"?)

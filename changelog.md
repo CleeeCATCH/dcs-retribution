@@ -1,6 +1,7 @@
 # Retribution v1.6.0
 
 ## Features/Improvements
+* **[Plugins]** New "Ballistic Missile Strike" plugin lets players call ballistic missile strikes (Scud-B, 9K720 Iskander, ATACMS, ...) from friendly launchers onto F10 map markers, MBot-artillery style: pick a battery, pick a marker, pick how many rounds. Multi-round launchers such as the two-round Iskander TEL are handled per round, with shot/splash calls, per-launcher minimum and maximum ranges, and a watchdog that reports a launcher that will not fire instead of leaving the fire mission hanging.
 * **[Options]** New Mission Generator option "All flights never use ECM" sets the DCS "ECM using: Never use" group option on every generated flight of both coalitions and suppresses the per-waypoint ECM tasks that would override it.
 * **[Modding]** Replaced Bandit's cloud presets with the ATMOS X mod's presets (v1.2, presets 35-88). The campaign option is now "Use ATMOS X clouds"; existing saves keep whichever way the old toggle was set. Modded presets that carry precipitation are now only rolled for rainy weather, and modded presets are registered when a campaign is created or loaded rather than only after the settings window has been opened.
 * **[Kneeboard]** Use a light-grey daytime kneeboard background instead of near-white, to avoid glare under HDR / Auto-HDR while staying readable in daylight.
