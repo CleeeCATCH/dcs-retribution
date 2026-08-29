@@ -147,6 +147,10 @@ local function ReturnArtilleryAmmo(GroupName)
 		elseif ammoType == '9M22U (122mm HE)' then
 			minRange = 5000
 			maxRange = 19000
+		elseif ammoType == 'MO.1.01.04M HE' then			--TOS-1A thermobaric rockets (Currenthill asset pack)
+			minRange = 600
+			maxRange = 6000
+			warhead = "thermobaric"
 		elseif ammoType == 'S-8OFP2' then
 			maxRange = 5000
 		elseif ammoType == 'M26 (270mm DPICM)' then
