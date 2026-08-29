@@ -103,6 +103,15 @@ local function ReturnArtilleryAmmo(GroupName)
 					ammoType = ammo[a].desc.displayName				--store ammo type name
 					ammoCat = ammo[a].desc.category					--store ammo category (shell or rocket)
 					break
+				elseif ammo[a].desc and ammo[a].desc.category and ammo[a].desc.category == 1 then		--ammo is a missile
+					--HIMARS rounds report as missiles rather than rockets. Screen on calibre
+					--so that a self defence SAM or ATGM is not mistaken for artillery: guided
+					--artillery starts at 227 mm, while those sit well below 200 mm.
+					if ammo[a].desc.warhead and ammo[a].desc.warhead.caliber and ammo[a].desc.warhead.caliber > 200 then
+						ammoType = ammo[a].desc.displayName
+						ammoCat = ammo[a].desc.category
+						break
+					end
 				end
 			end
 		end
@@ -147,6 +156,12 @@ local function ReturnArtilleryAmmo(GroupName)
 		elseif ammoType == '9M22U (122mm HE)' then
 			minRange = 5000
 			maxRange = 19000
+		elseif ammoType == 'GMLRS M31' or ammoType == 'GMLRS M30' then	--M142 HIMARS guided rockets
+			minRange = 15000
+			maxRange = 70000
+		elseif ammoType == 'MGM-140B M39A1' or ammoType == 'MGM-140E M48' then	--M142 HIMARS ATACMS
+			minRange = 50000
+			maxRange = 300000
 		elseif ammoType == '152 mm BB HE' then			--CH 2S35 Koalitsiya-SV
 			minRange = 50
 			maxRange = 29000
