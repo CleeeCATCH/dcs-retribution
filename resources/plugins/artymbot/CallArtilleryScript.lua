@@ -147,6 +147,15 @@ local function ReturnArtilleryAmmo(GroupName)
 		elseif ammoType == '9M22U (122mm HE)' then
 			minRange = 5000
 			maxRange = 19000
+		elseif ammoType == '152 mm BB HE' then			--CH 2S35 Koalitsiya-SV
+			minRange = 50
+			maxRange = 29000
+		elseif ammoType == 'M795 155mm HE' then			--CH M777 (the stock M795 entry uses a different display name)
+			minRange = 50
+			maxRange = 24000
+		elseif ammoType == 'M982 Excalibur 155 mm' then	--CH M777 guided; long minimum range
+			minRange = 20000
+			maxRange = 40000
 		elseif ammoType == 'MO.1.01.04M HE' then			--TOS-1A thermobaric rockets (Currenthill asset pack)
 			minRange = 600
 			maxRange = 6000
