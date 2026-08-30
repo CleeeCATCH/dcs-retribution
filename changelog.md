@@ -32,6 +32,7 @@
 * **[Modding]** Update UH-60L mod to v2.1.5 including MH-60L DAP
 
 ## Fixes
+* **[Modding]** An aircraft mod installed or re-enabled while Retribution is running no longer reports "No available liveries (using DCS default)" for the rest of the session. The DCS livery scan is a one-shot cache built at startup, so the airframe stayed livery-less until a restart; the squadron livery selector now rescans once before believing an empty result.
 * **[New Game Wizard]** Adding a unit to a faction no longer re-checks every unit you had unchecked. Adding an aircraft, ground unit or preset group rebuilds the faction's checkbox list, which reset the whole list to checked and silently undid the customization.
 * **[New Game Wizard]** Picking a start date by hand on the Theater Configuration calendar works again. The calendar was disabled while "Use preset" was checked, but the stylesheet draws a disabled calendar exactly like an enabled one, so clicking a day silently did nothing. The calendar is now always live and clicking a day leaves preset mode.
 * **[UX]** "Clean" (pylon fitted but empty, as opposed to "None") is now offered on every pylon in the payload editor. It was previously added to a pylon's dropdown only when the loadout already on display happened to use it there, so whether it could be selected depended on which preset the flight started with — the F-16C centerline could be set clean from a BARCAP/TARCAP/Escort loadout but not from a CAS/Strike/SEAD one.
