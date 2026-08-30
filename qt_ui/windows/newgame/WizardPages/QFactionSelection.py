@@ -53,6 +53,9 @@ class QFactionUnits(QScrollArea):
         self.parent = parent
         self.faction = faction
         self.doctrine_combo: Optional[QComboBox] = None
+        # Check states to restore when the checkboxes are rebuilt for the same faction,
+        # keyed like self.checkboxes. Empty means "everything starts checked".
+        self._retained_checks: dict[str, bool] = {}
         self._create_checkboxes(show_jtac, show_doctrine)
         self.show_jtac = show_jtac
         self.show_doctrine = show_doctrine
@@ -67,7 +70,11 @@ class QFactionUnits(QScrollArea):
         counter += 1
         for i, v in enumerate(sorted(units, key=lambda x: str(x)), counter):
             cb = QCheckBox(str(v))
-            cb.setCheckState(Qt.CheckState.Checked)
+            cb.setCheckState(
+                Qt.CheckState.Checked
+                if self._retained_checks.get(str(v), True)
+                else Qt.CheckState.Unchecked
+            )
             self.checkboxes[str(v)] = cb
             grid.addWidget(cb, i, 1)
             counter += 1
@@ -333,6 +340,15 @@ class QFactionUnits(QScrollArea):
         self.preset_groups_changed.emit(self.faction)
 
     def updateFaction(self, faction: Faction):
+        # Rebuilding the checkboxes for the faction that is already shown (which is what
+        # adding a unit does) must not throw away the units the user unchecked. Switching
+        # to a different faction starts from scratch, since its units are different ones.
+        if faction is self.faction:
+            self._retained_checks = {
+                name: cb.isChecked() for name, cb in self.checkboxes.items()
+            }
+        else:
+            self._retained_checks = {}
         self.faction = faction
         self.content = QWidget()
         self.setWidget(self.content)
