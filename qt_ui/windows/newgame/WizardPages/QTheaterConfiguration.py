@@ -185,7 +185,6 @@ class TheaterConfiguration(QtWidgets.QWizardPage):
         timePeriodPreset.setChecked(True)
         self.calendar = QLiberationCalendar()
         self.calendar.setSelectedDate(QDate())
-        self.calendar.setDisabled(True)
 
         def onTimePeriodChanged():
             self.calendar.setSelectedDate(
@@ -200,14 +199,18 @@ class TheaterConfiguration(QtWidgets.QWizardPage):
         timePeriodSelect.setCurrentIndex(21)
 
         def onTimePeriodCheckboxChanged():
+            timePeriodSelect.setDisabled(not timePeriodPreset.isChecked())
             if timePeriodPreset.isChecked():
-                self.calendar.setDisabled(True)
-                timePeriodSelect.setDisabled(False)
                 onTimePeriodChanged()
-            else:
-                self.calendar.setDisabled(False)
-                timePeriodSelect.setDisabled(True)
 
+        def onCalendarDateClicked():
+            # Clicking a day means the user wants that exact start date, so drop out of
+            # preset mode. The calendar is never disabled anymore: the stylesheet draws
+            # a disabled calendar exactly like an enabled one, so greying it out only
+            # made clicks silently do nothing and manual date selection look broken.
+            timePeriodPreset.setChecked(False)
+
+        self.calendar.clicked.connect(onCalendarDateClicked)
         timePeriodPreset.stateChanged.connect(onTimePeriodCheckboxChanged)
 
         # Bind selection method for campaign selection
