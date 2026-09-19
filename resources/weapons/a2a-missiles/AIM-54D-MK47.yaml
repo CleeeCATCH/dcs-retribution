@@ -3,3 +3,5 @@ year: 1996
 fallback: AIM-54C-MK47
 clsids:
   - "{AIM_54D_Mk47}"
+  - "{SHOULDER AIM_54D_Mk47 R}"
+  - "{SHOULDER AIM_54D_Mk47 L}"

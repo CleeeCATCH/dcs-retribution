@@ -31,11 +31,16 @@ variants:
 # AMRAAM" mod for the model). Pylons 2 and 9 are shoulder stations 1B and 8B;
 # pylons 4-7 are tunnel pallet stations 3, 4, 5 and 6. CLSIDs injected by
 # pydcs_extensions/f14_aim174b.
+# AIM-54D Phoenix ER added by the "AIM-54D" mod, on those same four tunnel pallet
+# stations and the two shoulder stations. CLSIDs injected by
+# pydcs_extensions/f14_aim54d. That mod gates its stations with b_and_bu_only, so
+# the stock F-14B gets the same set -- see F-14B.yaml.
 weapon_injections:
   1:
     - "{LAU-138 wtip - AIM-9X}"
   2:
     - "{SHOULDER AIM_174B L}"
+    - "{SHOULDER AIM_54D_Mk47 L}"
   4:
     - "{AIM_174B}"
     - "{AIM_54D_Mk47}"
@@ -50,6 +55,7 @@ weapon_injections:
     - "{AIM_54D_Mk47}"
   9:
     - "{SHOULDER AIM_174B R}"
+    - "{SHOULDER AIM_54D_Mk47 R}"
   10:
     - "{LAU-138 wtip - AIM-9X}"
 radios:

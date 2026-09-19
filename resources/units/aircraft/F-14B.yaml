@@ -24,6 +24,25 @@ role: Carrier-based Air-Superiority Fighter/Fighter Bomber
 max_range: 350
 variants:
   F-14B Tomcat: {}
+# AIM-54D Phoenix ER added by the "AIM-54D" mod, which declares its stations with
+# b_and_bu_only and so covers the stock F-14B as well as the F-14B(U). Pylons 2
+# and 9 are shoulder stations 1B and 8B, which carry the Phoenix adapter with
+# LAU-93B/A; pylons 4-7 are tunnel pallet stations 3, 4, 5 and 6. CLSIDs injected
+# by pydcs_extensions/f14_aim54d. The AIM-9X and AIM-174B mods are F-14B(U) only,
+# so those CLSIDs stay in F-14BU.yaml.
+weapon_injections:
+  2:
+    - "{SHOULDER AIM_54D_Mk47 L}"
+  4:
+    - "{AIM_54D_Mk47}"
+  5:
+    - "{AIM_54D_Mk47}"
+  6:
+    - "{AIM_54D_Mk47}"
+  7:
+    - "{AIM_54D_Mk47}"
+  9:
+    - "{SHOULDER AIM_54D_Mk47 R}"
 radios:
   intra_flight: AN/ARC-182
   inter_flight: AN/ARC-159
