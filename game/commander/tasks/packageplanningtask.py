@@ -44,6 +44,8 @@ class PackagePlanningTask(TheaterCommanderTask, Generic[MissionTargetT]):
         self.flights = []
 
     def preconditions_met(self, state: TheaterState) -> bool:
+        if not state.can_plan_package():
+            return False
         if (
             state.context.coalition.player.is_blue
             and state.context.settings.auto_ato_behavior is AutoAtoBehavior.Disabled
@@ -55,6 +57,7 @@ class PackagePlanningTask(TheaterCommanderTask, Generic[MissionTargetT]):
         seen: set[ControlPoint] = set()
         if not self.package:
             return
+        state.consume_package()
         for f in self.package.flights:
             if f.departure.is_fleet and not f.is_helo and f.departure not in seen:
                 state.recovery_targets[f.departure] += f.count

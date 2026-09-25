@@ -74,6 +74,16 @@ class TheaterState(WorldState["TheaterState"]):
     vulnerable_control_points: list[ControlPoint]
     control_point_priority_queue: list[ControlPoint]
     priority_cp: Optional[ControlPoint]
+    #: Number of packages the auto-planner may still create this turn. None means
+    #: unlimited.
+    packages_remaining: Optional[int] = None
+
+    def can_plan_package(self) -> bool:
+        return self.packages_remaining is None or self.packages_remaining > 0
+
+    def consume_package(self) -> None:
+        if self.packages_remaining is not None:
+            self.packages_remaining -= 1
 
     def _rebuild_threat_zones(self) -> None:
         """Recreates the theater's threat zones based on the current planned state."""
@@ -152,6 +162,7 @@ class TheaterState(WorldState["TheaterState"]):
             vulnerable_control_points=self.vulnerable_control_points,
             control_point_priority_queue=self.control_point_priority_queue,
             priority_cp=self.priority_cp,
+            packages_remaining=self.packages_remaining,
         )
 
     @classmethod
@@ -225,5 +236,13 @@ class TheaterState(WorldState["TheaterState"]):
             control_point_priority_queue=ordered_capturable_points,
             priority_cp=(
                 ordered_capturable_points[0] if ordered_capturable_points else None
+            ),
+            packages_remaining=(
+                (
+                    game.settings.max_auto_planned_packages_player
+                    if player.is_blue
+                    else game.settings.max_auto_planned_packages_enemy
+                )
+                or None
             ),
         )

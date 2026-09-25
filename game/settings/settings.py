@@ -702,6 +702,33 @@ class Settings:
             "auto-planning disables auto-purchase."
         ),
     )
+    max_auto_planned_packages_player: int = bounded_int_option(
+        "Maximum auto-planned packages per turn (player)",
+        CAMPAIGN_MANAGEMENT_PAGE,
+        HQ_AUTOMATION_SECTION,
+        default=0,
+        min=0,
+        max=100,
+        detail=(
+            "Limits how many packages the auto-planner creates for the player's "
+            "coalition each turn. 0 means no limit. Packages are planned in priority "
+            "order (AEW&C and tankers, then BARCAPs, then offensive missions), so a "
+            "low limit is filled by the highest priority missions first. Packages "
+            "you create manually and transport/ferry flights are not counted."
+        ),
+    )
+    max_auto_planned_packages_enemy: int = bounded_int_option(
+        "Maximum auto-planned packages per turn (enemy)",
+        CAMPAIGN_MANAGEMENT_PAGE,
+        HQ_AUTOMATION_SECTION,
+        default=0,
+        min=0,
+        max=100,
+        detail=(
+            "Limits how many packages the enemy auto-planner creates each turn. "
+            "0 means no limit. Transport and ferry flights are not counted."
+        ),
+    )
     auto_ato_behavior_awacs: bool = boolean_option(
         "Automatic AWACS package planning",
         CAMPAIGN_MANAGEMENT_PAGE,
