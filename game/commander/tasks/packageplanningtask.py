@@ -6,7 +6,7 @@ import random
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, auto, unique
-from typing import Generic, Iterator, Optional, TYPE_CHECKING, TypeVar, Union
+from typing import ClassVar, Generic, Iterator, Optional, TYPE_CHECKING, TypeVar, Union
 
 from game.ato.flighttype import FlightType
 from game.ato.package import Package
@@ -39,12 +39,16 @@ class PackagePlanningTask(TheaterCommanderTask, Generic[MissionTargetT]):
     target: MissionTargetT
     flights: list[ProposedFlight] = field(init=False)
     package: Optional[Package] = field(init=False, default=None)
+    #: Whether this package counts toward the per-turn auto-planned package limit.
+    #: Support missions (BARCAP, AEW&C, tankers) are exempt so that the limit only
+    #: throttles offensive missions.
+    counts_toward_package_limit: ClassVar[bool] = True
 
     def __post_init__(self) -> None:
         self.flights = []
 
     def preconditions_met(self, state: TheaterState) -> bool:
-        if not state.can_plan_package():
+        if self.counts_toward_package_limit and not state.can_plan_package():
             return False
         if (
             state.context.coalition.player.is_blue
@@ -57,7 +61,8 @@ class PackagePlanningTask(TheaterCommanderTask, Generic[MissionTargetT]):
         seen: set[ControlPoint] = set()
         if not self.package:
             return
-        state.consume_package()
+        if self.counts_toward_package_limit:
+            state.consume_package()
         for f in self.package.flights:
             if f.departure.is_fleet and not f.is_helo and f.departure not in seen:
                 state.recovery_targets[f.departure] += f.count

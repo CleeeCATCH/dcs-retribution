@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from game.ato.flighttype import FlightType
 from game.commander.tasks.packageplanningtask import PackagePlanningTask
@@ -12,6 +13,8 @@ MARGIN = 4  # assume 4 aircraft can land without refueling
 
 @dataclass
 class PlanRecovery(PackagePlanningTask[ControlPoint]):
+    counts_toward_package_limit: ClassVar[bool] = False
+
     def preconditions_met(self, state: TheaterState) -> bool:
         if (
             state.context.coalition.player.is_blue
@@ -29,7 +32,6 @@ class PlanRecovery(PackagePlanningTask[ControlPoint]):
     def apply_effects(self, state: TheaterState) -> None:
         ac_per_tanker = state.context.settings.aircraft_per_recovery_tanker
         state.recovery_targets[self.target] -= ac_per_tanker + MARGIN
-        state.consume_package()
 
     def propose_flights(self) -> None:
         self.propose_flight(FlightType.RECOVERY, 1)

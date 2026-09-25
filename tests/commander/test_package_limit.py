@@ -1,12 +1,24 @@
 from __future__ import annotations
 
-from typing import Optional
+from dataclasses import dataclass
+from typing import Any, Optional
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from game.commander.tasks.packageplanningtask import PackagePlanningTask
+from game.commander.tasks.primitive.aewc import PlanAewc
 from game.commander.tasks.primitive.barcap import PlanBarcap
-from game.commander.tasks.primitive.recovery import MARGIN, PlanRecovery
+from game.commander.tasks.primitive.recovery import PlanRecovery
+from game.commander.tasks.primitive.refueling import PlanRefueling
 from game.commander.theaterstate import TheaterState
 from game.settings import Settings
+
+
+@dataclass
+class _OffensiveTask(PackagePlanningTask[Any]):
+    def propose_flights(self) -> None:
+        pass
 
 
 def _state(packages_remaining: Optional[int]) -> TheaterState:
@@ -59,22 +71,18 @@ def test_limit_is_consumed_and_cloned() -> None:
 
 
 def test_package_task_rejected_when_limit_reached() -> None:
-    target = MagicMock()
     state = _state(0)
-    state.barcaps_needed[target] = 1
-    task = PlanBarcap(target, max_orders=1)
-    with patch.object(PlanBarcap, "fulfill_mission", return_value=True) as fulfill:
+    task = _OffensiveTask(MagicMock())
+    with patch.object(_OffensiveTask, "fulfill_mission", return_value=True) as fulfill:
         assert not task.preconditions_met(state)
         # No aircraft may be claimed for a package that will not be planned.
         fulfill.assert_not_called()
 
 
 def test_package_task_allowed_and_consumes_budget() -> None:
-    target = MagicMock()
     state = _state(1)
-    state.barcaps_needed[target] = 2
-    task = PlanBarcap(target, max_orders=1)
-    with patch.object(PlanBarcap, "fulfill_mission", return_value=True):
+    task = _OffensiveTask(MagicMock())
+    with patch.object(_OffensiveTask, "fulfill_mission", return_value=True):
         assert task.preconditions_met(state)
         task.package = MagicMock(flights=[])
         task.apply_effects(state)
@@ -82,12 +90,29 @@ def test_package_task_allowed_and_consumes_budget() -> None:
     assert state.packages_remaining == 0
 
 
-def test_recovery_tanker_counts_against_limit() -> None:
+@pytest.mark.parametrize(
+    "task_type", [PlanBarcap, PlanAewc, PlanRefueling, PlanRecovery]
+)
+def test_support_missions_are_exempt(task_type: type[PackagePlanningTask[Any]]) -> None:
+    assert not task_type.counts_toward_package_limit
+
+
+def test_barcap_planned_and_not_counted_when_limit_reached() -> None:
+    target = MagicMock()
+    state = _state(0)
+    state.barcaps_needed[target] = 1
+    task = PlanBarcap(target, max_orders=1)
+    with patch.object(PlanBarcap, "fulfill_mission", return_value=True):
+        assert task.preconditions_met(state)
+        task.package = MagicMock(flights=[])
+        task.apply_effects(state)
+    assert state.packages_remaining == 0
+    assert state.barcaps_needed[target] == 0
+
+
+def test_recovery_tanker_not_counted() -> None:
     target = MagicMock()
     state = _state(1)
     state.recovery_targets[target] = 100
     PlanRecovery(target).apply_effects(state)
-    assert state.recovery_targets[target] == 100 - (
-        state.context.settings.aircraft_per_recovery_tanker + MARGIN
-    )
-    assert not state.can_plan_package()
+    assert state.packages_remaining == 1

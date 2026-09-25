@@ -711,10 +711,10 @@ class Settings:
         max=100,
         detail=(
             "Limits how many packages the auto-planner creates for the player's "
-            "coalition each turn. 0 means no limit. Packages are planned in priority "
-            "order (AEW&C and tankers, then BARCAPs, then offensive missions), so a "
-            "low limit is filled by the highest priority missions first. Packages "
-            "you create manually and transport/ferry flights are not counted."
+            "coalition each turn. 0 means no limit. BARCAP, AEW&C and tanker "
+            "packages are not counted, so the limit only applies to other missions, "
+            "which are planned in priority order. Packages you create manually and "
+            "transport/ferry flights are not counted either."
         ),
     )
     max_auto_planned_packages_enemy: int = bounded_int_option(
@@ -726,7 +726,8 @@ class Settings:
         max=100,
         detail=(
             "Limits how many packages the enemy auto-planner creates each turn. "
-            "0 means no limit. Transport and ferry flights are not counted."
+            "0 means no limit. BARCAP, AEW&C, tanker, transport and ferry "
+            "packages are not counted."
         ),
     )
     auto_ato_behavior_awacs: bool = boolean_option(

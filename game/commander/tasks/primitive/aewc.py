@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from game.ato.flighttype import FlightType
 from game.commander.tasks.packageplanningtask import PackagePlanningTask
@@ -10,6 +11,8 @@ from game.theater import MissionTarget
 
 @dataclass
 class PlanAewc(PackagePlanningTask[MissionTarget]):
+    counts_toward_package_limit: ClassVar[bool] = False
+
     def preconditions_met(self, state: TheaterState) -> bool:
         if (
             state.context.coalition.player.is_blue
