@@ -27,6 +27,10 @@
         {
             "file": "land_relocate.lua",
             "mnemonic": "land_relocate"
+        },
+        {
+            "file": "dynamic_activation.lua",
+            "mnemonic": "dynamic_activation"
         }
     ],
     "configurationWorkOrders": []

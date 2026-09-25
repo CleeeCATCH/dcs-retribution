@@ -36,11 +36,12 @@ def _ground_object(name: str, unit_type: Any) -> Any:
 
 def _generated_lua(ground_objects: list[Any], frontline_groups: list[Any]) -> str:
     game = SimpleNamespace(
+        settings=SimpleNamespace(perf_dynamic_activation=False),
         theater=SimpleNamespace(
             ground_objects=ground_objects,
             controlpoints=[],
             iads_network=SimpleNamespace(skynet_nodes=lambda game: []),
-        )
+        ),
     )
     mission_data = SimpleNamespace(
         runways=[],

@@ -19,6 +19,7 @@ from game.plugins import LuaPluginManager
 from game.theater import TheaterGroundObject
 from game.theater.iadsnetwork.iadsrole import IadsRole
 from game.utils import escape_string_for_lua
+from .dynamicactivation import managed_groups
 from .missiondata import MissionData
 
 if TYPE_CHECKING:
@@ -347,9 +348,43 @@ class LuaGenerator:
                 "engagementRangeMeters", str(escort.engagement_range_meters)
             )
 
+        self.generate_dynamic_activation_data(lua_data)
+
         trigger = TriggerStart(comment="Set DCS Retribution data")
         trigger.add_action(DoScript(String(lua_data.create_operations_lua())))
         self.mission.triggerrules.triggers.append(trigger)
+
+    def generate_dynamic_activation_data(self, lua_data: LuaData) -> None:
+        settings = self.game.settings
+        if not settings.perf_dynamic_activation:
+            return
+        activation = lua_data.add_item("DynamicActivation")
+        activation.add_item("radiusMeters").set_value(
+            str(settings.perf_dynamic_activation_radius * 1000)
+        )
+        activation.add_item("sleepDelaySeconds").set_value(
+            str(settings.perf_dynamic_activation_sleep_delay * 60)
+        )
+        activation.add_item("debug").set_value(
+            "true" if settings.perf_dynamic_activation_debug else "false"
+        )
+        # Ground groups of fixed ground objects never move, so they are not treated
+        # as enemies approaching a sleeping group.
+        activation.add_item("fixedGroupNames").set_data_array(
+            [
+                group.group_name
+                for ground_object in self.game.theater.ground_objects
+                for group in ground_object.groups
+            ]
+        )
+        groups = activation.add_item("groups")
+        for group in managed_groups(self.game):
+            group_item = groups.add_item()
+            group_item.add_key_value("name", group.group_name)
+            group_item.add_key_value("coalition", group.coalition)
+            # pydcs x/y are DCS vec3 x/z.
+            group_item.add_key_value("x", str(group.x))
+            group_item.add_key_value("z", str(group.y))
 
     def inject_lua_trigger(self, contents: str, comment: str) -> None:
         trigger = TriggerStart(comment=comment)

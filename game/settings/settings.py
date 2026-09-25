@@ -1385,6 +1385,41 @@ class Settings:
             "if the start-up type was manually changed to 'In-Flight'."
         ),
     )
+    perf_dynamic_activation: bool = boolean_option(
+        "Put idle ground units to sleep",
+        page=MISSION_GENERATOR_PAGE,
+        section=PERFORMANCE_SECTION,
+        default=False,
+        detail=(
+            "Switches off the AI of ground units at battle positions, motorpools and "
+            "strike targets while no enemy ground unit, enemy helicopter or player "
+            "is within the wake radius. Sleeping units can still be seen, attacked "
+            "and destroyed, and wake up as soon as they are hit. Air defences, "
+            "ships, artillery and missile launchers are never put to sleep."
+        ),
+    )
+    perf_dynamic_activation_radius: int = bounded_int_option(
+        "Wake radius for sleeping ground units (km)",
+        page=MISSION_GENERATOR_PAGE,
+        section=PERFORMANCE_SECTION,
+        default=20,
+        min=5,
+        max=100,
+    )
+    perf_dynamic_activation_sleep_delay: int = bounded_int_option(
+        "Delay before idle ground units go back to sleep (minutes)",
+        page=MISSION_GENERATOR_PAGE,
+        section=PERFORMANCE_SECTION,
+        default=3,
+        min=0,
+        max=60,
+    )
+    perf_dynamic_activation_debug: bool = boolean_option(
+        "Log sleeping ground unit counts to dcs.log",
+        page=MISSION_GENERATOR_PAGE,
+        section=PERFORMANCE_SECTION,
+        default=False,
+    )
     pretense_maxdistfromfront_distance: int = bounded_int_option(
         "Max distance from front (km)",
         page=PRETENSE_PAGE,
