@@ -362,6 +362,9 @@ class LuaGenerator:
         activation.add_item("radiusMeters").set_value(
             str(settings.perf_dynamic_activation_radius * 1000)
         )
+        activation.add_item("airplaneRadiusMeters").set_value(
+            str(settings.perf_dynamic_activation_airplane_radius * 1000)
+        )
         activation.add_item("sleepDelaySeconds").set_value(
             str(settings.perf_dynamic_activation_sleep_delay * 60)
         )

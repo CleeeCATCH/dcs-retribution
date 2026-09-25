@@ -180,6 +180,7 @@ def test_generated_data_is_valid_lua() -> None:
     settings.perf_dynamic_activation = True
     settings.perf_dynamic_activation_radius = 15
     settings.perf_dynamic_activation_sleep_delay = 2
+    settings.perf_dynamic_activation_airplane_radius = 4
     armour = _ground_object(
         VehicleGroupGroundObject, _group("0001 | Armour", _unit(x=10, y=20))
     )
@@ -194,6 +195,7 @@ def test_generated_data_is_valid_lua() -> None:
 
     assert data.radiusMeters == "15000"
     assert data.sleepDelaySeconds == "120"
+    assert data.airplaneRadiusMeters == "4000"
     assert data.debug == "false"
     assert list(data.fixedGroupNames.values()) == ["0001 | Armour", "0002 | SAM"]
     group = data.groups[1]
@@ -269,8 +271,9 @@ function runTimers(untilTime)
 end
 
 function makeUnit(x, z)
-    local unit = {point = {x = x, y = 0, z = z}}
+    local unit = {point = {x = x, y = 0, z = z}, airborne = true}
     function unit:getPoint() return self.point end
+    function unit:inAir() return self.airborne end
     return unit
 end
 
@@ -318,6 +321,7 @@ class FakeDcs:
         self.lua.execute(FAKE_DCS)
         radius = config.get("radius", 20000)
         delay = config.get("delay", 180)
+        airplane_radius = config.get("airplane_radius", 0)
         fixed = config.get("fixed", [])
         entries = ", ".join(
             f'{{name = "{name}", coalition = "{side}", x = "{x}", z = "{z}"}}'
@@ -327,6 +331,7 @@ class FakeDcs:
         self.lua.execute(
             "dcsRetribution = {DynamicActivation = {"
             f'radiusMeters = "{radius}", sleepDelaySeconds = "{delay}", '
+            f'airplaneRadiusMeters = "{airplane_radius}", '
             f'debug = "true", fixedGroupNames = {{{fixed_names}}}, '
             f"groups = {{{entries}}}}}}}"
         )
@@ -394,7 +399,7 @@ def test_friendly_ground_units_do_not_wake_group() -> None:
     assert dcs.ai("armour") is False
 
 
-def test_enemy_helicopter_wakes_group_but_airplane_does_not() -> None:
+def test_enemy_helicopter_wakes_group_but_airplane_does_not_when_disabled() -> None:
     dcs = FakeDcs([("near helo", "red", 0, 0), ("near jet", "red", 100000, 0)])
     dcs.add_group("apache", "blue", "helicopter", 10000, 0)
     dcs.add_group("strike", "blue", "airplane", 100000, 1000)
@@ -402,6 +407,38 @@ def test_enemy_helicopter_wakes_group_but_airplane_does_not() -> None:
     dcs.run_until(2)
     assert dcs.ai("near helo") is None
     assert dcs.ai("near jet") is False
+
+
+def test_airborne_enemy_airplane_wakes_group_within_its_radius() -> None:
+    dcs = FakeDcs(
+        [("near", "red", 0, 0), ("far", "red", 100000, 0)],
+        radius=20000,
+        airplane_radius=5000,
+    )
+    dcs.add_group("strike", "blue", "airplane", 4000, 0)
+    # Inside the main radius but outside the airplane radius.
+    dcs.add_group("cap", "blue", "airplane", 100000, 15000)
+    dcs.start()
+    dcs.run_until(2)
+    assert dcs.ai("near") is None
+    assert dcs.ai("far") is False
+
+
+def test_parked_airplane_does_not_wake_group() -> None:
+    dcs = FakeDcs([("motorpool", "red", 0, 0)], airplane_radius=5000)
+    parked = dcs.add_group("parked", "blue", "airplane", 1000, 0)
+    parked.units[1].airborne = False
+    dcs.start()
+    dcs.run_until(2)
+    assert dcs.ai("motorpool") is False
+
+
+def test_friendly_airplane_does_not_wake_group() -> None:
+    dcs = FakeDcs([("armour", "red", 0, 0)], airplane_radius=5000)
+    dcs.add_group("red cap", "red", "airplane", 1000, 0)
+    dcs.start()
+    dcs.run_until(2)
+    assert dcs.ai("armour") is False
 
 
 @pytest.mark.parametrize("side", ["red", "blue"])

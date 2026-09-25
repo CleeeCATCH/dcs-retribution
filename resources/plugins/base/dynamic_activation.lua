@@ -15,8 +15,9 @@
 --     (front line units, convoys, units spawned during the mission, Combined Arms players)
 --   * a helicopter of the enemy coalition
 --   * a player of either coalition
--- Enemy airplanes do not wake a group: the units cannot engage them anyway, and waking every
--- group under an AI strike package would undo the savings at peak activity. A group that is hit
+-- Airborne enemy airplanes wake a group within their own, usually smaller, radius. Jets pass over
+-- most of the map during a strike wave; a short radius only wakes the groups they close in on to
+-- attack or overfly low, instead of every group under the package's route. A group that is hit
 -- wakes immediately and is never put back to sleep, so it can react and so that damage scripts
 -- that switch off crippled units are not overridden.
 -------------------------------------------------------------------------------------------------
@@ -28,6 +29,9 @@ do
     if data then
         local RADIUS = tonumber(data.radiusMeters) or 20000
         local RADIUS_SQUARED = RADIUS * RADIUS
+        -- 0 disables waking by airplanes.
+        local AIRPLANE_RADIUS = tonumber(data.airplaneRadiusMeters) or 0
+        local AIRPLANE_RADIUS_SQUARED = AIRPLANE_RADIUS * AIRPLANE_RADIUS
         local SLEEP_DELAY = tonumber(data.sleepDelaySeconds) or 180
         local DEBUG = data.debug == "true"
         -- Every group is evaluated once per cycle. The work is spread over one tick per second
@@ -122,9 +126,18 @@ do
             return coalition.side.RED
         end
 
-        -- Positions that wake groups of the given coalition.
+        local function isAirborne(unit)
+            local ok, airborne = pcall(function()
+                return unit:inAir()
+            end)
+            return ok and airborne
+        end
+
+        -- Positions that wake groups of the given coalition. Airplanes are kept apart because
+        -- they use their own radius.
         local function collectObservers(side)
             local points = {}
+            local airplanes = {}
             local enemy = otherSide(side)
             for _, group in ipairs(coalition.getGroups(enemy, Group.Category.GROUND) or {}) do
                 if not fixedGroups[group:getName()] then
@@ -139,23 +152,38 @@ do
                     addPoint(points, unit)
                 end
             end
+            if AIRPLANE_RADIUS > 0 then
+                for _, group in ipairs(coalition.getGroups(enemy, Group.Category.AIRPLANE) or {}) do
+                    for _, unit in ipairs(group:getUnits() or {}) do
+                        -- Parked jets would keep groups next to their airfield awake all mission.
+                        if isAirborne(unit) then
+                            addPoint(airplanes, unit)
+                        end
+                    end
+                end
+            end
             for _, playerSide in ipairs({ coalition.side.RED, coalition.side.BLUE }) do
                 for _, unit in ipairs(coalition.getPlayers(playerSide) or {}) do
                     addPoint(points, unit)
                 end
             end
-            return points
+            return { points = points, airplanes = airplanes }
         end
 
-        local function anyObserverNear(group, points)
+        local function anyWithin(group, points, radiusSquared)
             for i = 1, #points do
                 local dx = points[i].x - group.x
                 local dz = points[i].z - group.z
-                if dx * dx + dz * dz <= RADIUS_SQUARED then
+                if dx * dx + dz * dz <= radiusSquared then
                     return true
                 end
             end
             return false
+        end
+
+        local function anyObserverNear(group, observers)
+            return anyWithin(group, observers.points, RADIUS_SQUARED)
+                or anyWithin(group, observers.airplanes, AIRPLANE_RADIUS_SQUARED)
         end
 
         local function evaluate(group, observers, now)
@@ -267,7 +295,12 @@ do
                 timer.scheduleFunction(tick, nil, time + TICK_SECONDS)
                 return nil
             end, nil, timer.getTime() + 1)
-            log(string.format("managing %d ground groups, wake radius %d m", #managed, RADIUS))
+            log(string.format(
+                "managing %d ground groups, wake radius %d m, airplane wake radius %d m",
+                #managed,
+                RADIUS,
+                AIRPLANE_RADIUS
+            ))
         end
     end
 end

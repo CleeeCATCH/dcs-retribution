@@ -1393,7 +1393,8 @@ class Settings:
         detail=(
             "Switches off the AI of ground units at battle positions, motorpools and "
             "strike targets while no enemy ground unit, enemy helicopter or player "
-            "is within the wake radius. Sleeping units can still be seen, attacked "
+            "is within the wake radius, or an enemy airplane within the airplane "
+            "wake radius. Sleeping units can still be seen, attacked "
             "and destroyed, and wake up as soon as they are hit. Air defences, "
             "ships, artillery and missile launchers are never put to sleep."
         ),
@@ -1405,6 +1406,20 @@ class Settings:
         default=20,
         min=5,
         max=100,
+    )
+    perf_dynamic_activation_airplane_radius: int = bounded_int_option(
+        "Wake radius for enemy airplanes (km)",
+        page=MISSION_GENERATOR_PAGE,
+        section=PERFORMANCE_SECTION,
+        default=5,
+        min=0,
+        max=100,
+        detail=(
+            "Airborne enemy airplanes wake sleeping ground units within this "
+            "distance. Keep it smaller than the main wake radius: during strike "
+            "waves jets are over most of the map, and a large radius wakes every "
+            "group along their routes. 0 means airplanes never wake units."
+        ),
     )
     perf_dynamic_activation_sleep_delay: int = bounded_int_option(
         "Delay before idle ground units go back to sleep (minutes)",
