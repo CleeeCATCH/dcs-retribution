@@ -178,6 +178,7 @@ class PretenseFlightGroupConfigurator(FlightGroupConfigurator):
             loadout = member.loadout.default_for_task_and_aircraft(
                 FlightType.SEAD_SWEEP, self.flight.unit_type.dcs_unit_type
             )
+        loadout = loadout.with_preferred_a2a_missiles_for(self.flight)
 
         if self.game.settings.restrict_weapons_by_date:
             # Always apply target overrides for AI, only for players if setting is enabled

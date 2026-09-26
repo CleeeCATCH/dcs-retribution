@@ -1,4 +1,5 @@
 name: R530F EM
+type: AAM_RADAR
 year: 1962
 fallback: R530F IR
 clsids:

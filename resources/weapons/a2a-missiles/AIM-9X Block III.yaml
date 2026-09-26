@@ -1,4 +1,5 @@
 name: AIM-9X Block III
+type: AAM_IR
 year: 2022
 fallback: AIM-9X Block II
 clsids:

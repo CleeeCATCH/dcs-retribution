@@ -211,6 +211,10 @@ class WeaponType(Enum):
     DECOY = "DECOY"
     JAMMER = "JAMMER"
     OFFENSIVE_JAMMER = "OFFENSIVE_JAMMER"
+    #: Radar guided air-to-air missiles (typically BVR).
+    AAM_RADAR = "AAM_RADAR"
+    #: Infrared guided air-to-air missiles (typically WVR).
+    AAM_IR = "AAM_IR"
     UNKNOWN = "unknown"
 
 
@@ -276,6 +280,12 @@ class WeaponGroup:
         if not cls._loaded:
             cls.load_all()
         return cls._by_name[name]
+
+    @classmethod
+    def iter_all(cls) -> Iterator[WeaponGroup]:
+        if not cls._loaded:
+            cls.load_all()
+        yield from cls._by_name.values()
 
     @classmethod
     def _each_weapon_group(cls) -> Iterator[WeaponGroup]:

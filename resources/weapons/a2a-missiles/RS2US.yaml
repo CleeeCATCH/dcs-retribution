@@ -1,4 +1,5 @@
 name: RS2US - AAM, beam-rider
+type: AAM_RADAR
 year: 1957
 clsids:
   - "{RS-2US}"

@@ -1,4 +1,5 @@
 name: R-73 (AA-11 Archer) - Infra Red
+type: AAM_IR
 year: 1984
 fallback: R-60M x 2
 clsids:

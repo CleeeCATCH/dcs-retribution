@@ -1,4 +1,5 @@
 name: 9M39 Igla (air-to-air)
+type: AAM_IR
 year: 1983
 clsids:
   - "{CHAP_Mi28N_4xIGLA}"   # 4 x 9M39 Igla

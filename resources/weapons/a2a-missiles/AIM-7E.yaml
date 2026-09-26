@@ -1,4 +1,5 @@
 name: AIM-7E
+type: AAM_RADAR
 year: 1963
 fallback: AIM-9X
 # Do not add the other 7E looking names, they are actually AIM-7E-2 6 years newer

@@ -418,7 +418,7 @@ class FlightGroupConfigurator:
     def setup_payload(self, unit: FlyingUnit, member: FlightMember) -> None:
         unit.pylons.clear()
 
-        loadout = member.loadout
+        loadout = member.loadout.with_preferred_a2a_missiles_for(self.flight)
         if self.game.settings.restrict_weapons_by_date:
             # Always apply target overrides for AI, only for players if setting is enabled
             should_apply_overrides = (

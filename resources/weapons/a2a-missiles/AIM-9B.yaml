@@ -1,4 +1,5 @@
 name: AIM-9B
+type: AAM_IR
 year: 1956
 clsids:
   - "{AIM-9B}"

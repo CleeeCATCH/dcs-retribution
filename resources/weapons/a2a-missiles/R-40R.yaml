@@ -1,4 +1,5 @@
 name: R-40R
+type: AAM_RADAR
 year: 1971
 fallback: R-3R - AAM, radar guided
 clsids:

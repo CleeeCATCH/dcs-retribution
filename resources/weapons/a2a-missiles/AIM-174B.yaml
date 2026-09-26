@@ -1,4 +1,5 @@
 name: AIM-174B Gunslinger
+type: AAM_RADAR
 year: 2024
 fallback: AIM-120D-3
 clsids:

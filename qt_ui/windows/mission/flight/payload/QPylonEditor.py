@@ -124,6 +124,7 @@ class QPylonEditor(QWidget):
         return loadout.pylons.get(self.pylon.number)
 
     def matching_weapon_name(self, loadout: Loadout) -> str:
+        loadout = loadout.with_preferred_a2a_missiles_for(self.flight)
         if self.game.settings.restrict_weapons_by_date:
             # Always apply target overrides for AI, only for players if setting is enabled
             should_apply_overrides = (

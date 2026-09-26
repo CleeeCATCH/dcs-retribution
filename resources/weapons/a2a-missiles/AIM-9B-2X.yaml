@@ -1,4 +1,5 @@
 name: 2xAIM-9B
+type: AAM_IR
 year: 1956
 # have gone through the doubles so now back to the singles
 fallback: AIM-9X

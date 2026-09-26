@@ -1,4 +1,5 @@
 name: R-37M (AA-13 Axehead)
+type: AAM_RADAR
 year: 2019
 fallback: R-37 (AA-13 Axehead)
 clsids:

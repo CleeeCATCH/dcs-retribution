@@ -1,4 +1,5 @@
 name: 2xAIM-260A JATM
+type: AAM_RADAR
 year: 2026
 fallback: 2xAIM-120D-3
 clsids:

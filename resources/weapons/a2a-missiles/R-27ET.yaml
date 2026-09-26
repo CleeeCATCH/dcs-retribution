@@ -1,4 +1,5 @@
 name: R-27ET
+type: AAM_IR
 year: 1990 # Based on deagal.com may have been earlier 
 fallback: R-27T
 clsids:

@@ -1,4 +1,5 @@
 name: AIM-120B
+type: AAM_RADAR
 year: 1994
 fallback: AIM-7MH
 clsids:

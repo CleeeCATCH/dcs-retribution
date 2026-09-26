@@ -1,4 +1,5 @@
 name: R-3R - AAM, radar guided
+type: AAM_RADAR
 year: 1966
 fallback: R-3S - AAM, IR guided
 clsids:

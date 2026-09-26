@@ -1,4 +1,5 @@
 name: AIM-7E-2
+type: AAM_RADAR
 year: 1969
 fallback: AIM-7E
 #Ignore how the CLSIDs look, these are not normal 7Es they are 7E-2 DOGFIGHT MISSILES

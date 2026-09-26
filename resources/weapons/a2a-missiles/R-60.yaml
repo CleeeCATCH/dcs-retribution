@@ -1,4 +1,5 @@
 name: R-60
+type: AAM_IR
 year: 1973
 fallback: R-55 - AAM, IR guided
 clsids:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import datetime
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Iterator, Optional, TYPE_CHECKING, Type, Dict, Any
 
 from dcs.unittype import FlyingType
@@ -166,6 +166,63 @@ class Loadout:
                     new_pylons[pylon_number] = fallback
                     self.pylon_settings.pop(pylon_number, None)
         self.pylons = new_pylons
+
+    def with_preferred_a2a_missiles_for(self, flight: Flight) -> Loadout:
+        """Applies the campaign's preferred A2A missiles for the flight's side."""
+        from game.data.a2amissiles import preferred_missiles
+
+        coalition = flight.squadron.coalition
+        settings = coalition.game.settings
+        return self.with_preferred_a2a_missiles(
+            flight.unit_type,
+            preferred_missiles(settings, coalition.player.is_blue),
+            coalition.game.date if settings.restrict_weapons_by_date else None,
+            coalition.faction,
+        )
+
+    def with_preferred_a2a_missiles(
+        self,
+        unit_type: AircraftType,
+        preferences: Mapping[WeaponType, Sequence[str]],
+        date: Optional[datetime.date] = None,
+        faction: Optional[Faction] = None,
+    ) -> Loadout:
+        """Returns a copy of the loadout re-armed with the preferred A2A missiles.
+
+        Each pylon carrying one of the ranked missiles gets the highest ranked missile
+        of the same guidance type that the pylon can carry (and that is in service on
+        the given date, if one is given). Custom loadouts are returned unchanged, since
+        the player picked those weapons explicitly.
+        """
+        from game.data.a2amissiles import missile_family_for, replacement_for
+
+        if self.is_custom or not any(preferences.values()):
+            return self
+
+        new_pylons = dict(self.pylons)
+        new_settings = copy.deepcopy(self.pylon_settings)
+        for pylon_number, weapon in self.pylons.items():
+            if weapon is None:
+                continue
+            family = missile_family_for(weapon)
+            if family is None:
+                continue
+            ranked = preferences.get(family.type, ())
+            if not ranked:
+                continue
+            pylon = Pylon.for_aircraft(unit_type, pylon_number)
+            replacement = replacement_for(weapon, pylon, ranked, date, faction)
+            if replacement is not None and replacement != weapon:
+                new_pylons[pylon_number] = replacement
+                new_settings.pop(pylon_number, None)
+
+        return Loadout(
+            self.name,
+            new_pylons,
+            self.date,
+            self.is_custom,
+            pylon_settings=new_settings,
+        )
 
     def apply_target_overrides(self, target: "MissionTarget") -> None:
         """Apply target-based weapon setting overrides to this loadout.

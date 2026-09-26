@@ -1,4 +1,5 @@
 name: AIM-54D-MK47
+type: AAM_RADAR
 year: 1996
 fallback: AIM-54C-MK47
 clsids:

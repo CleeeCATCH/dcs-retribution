@@ -1,4 +1,5 @@
 name: AIM-260B JATM
+type: AAM_RADAR
 year: 2030
 fallback: AIM-260A JATM
 clsids:

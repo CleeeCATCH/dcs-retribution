@@ -1,4 +1,5 @@
 name: 2xAIM-120C
+type: AAM_RADAR
 year: 1996
 fallback: 2xAIM-120B
 clsids:

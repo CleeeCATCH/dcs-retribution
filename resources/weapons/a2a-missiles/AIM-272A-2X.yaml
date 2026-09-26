@@ -1,4 +1,5 @@
 name: 2xAIM-272A LRAAM
+type: AAM_RADAR
 year: 2028
 fallback: 2xAIM-120D-3
 clsids:

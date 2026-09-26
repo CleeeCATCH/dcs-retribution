@@ -1,4 +1,5 @@
 name: MICA RF
+type: AAM_RADAR
 year: 1996
 fallback: AIM-120B
 clsids:

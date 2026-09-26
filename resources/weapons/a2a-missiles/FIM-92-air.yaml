@@ -1,4 +1,5 @@
 name: FIM-92 Stinger (air-to-air)
+type: AAM_IR
 year: 1982
 clsids:
   - "OH58D_FIM_92_L"   # 2xFIM-92

@@ -1,4 +1,5 @@
 name: R-13M1 - AAM, IR guided
+type: AAM_IR
 year: 1976
 fallback: R-13M - AAM, IR guided
 clsids:

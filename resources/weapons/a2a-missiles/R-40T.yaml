@@ -1,4 +1,5 @@
 name: R-40T
+type: AAM_IR
 year: 1983
 fallback: R-40R
 clsids:

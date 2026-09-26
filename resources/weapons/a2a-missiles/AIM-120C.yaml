@@ -1,4 +1,5 @@
 name: AIM-120C
+type: AAM_RADAR
 year: 1996
 fallback: AIM-120B
 clsids:

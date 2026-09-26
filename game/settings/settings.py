@@ -1579,6 +1579,14 @@ class Settings:
     enable_air_wing_adjustments: bool = False
     enable_enemy_buy_sell: bool = False
 
+    # Preferred air-to-air missiles, ranked best first, by missile family name (see
+    # game.data.a2amissiles). Edited on the "Air-to-Air Missiles" settings page. Empty
+    # lists keep the missiles of the default loadouts.
+    player_preferred_radar_missiles: list[str] = field(default_factory=list)
+    player_preferred_ir_missiles: list[str] = field(default_factory=list)
+    enemy_preferred_radar_missiles: list[str] = field(default_factory=list)
+    enemy_preferred_ir_missiles: list[str] = field(default_factory=list)
+
     # LUA Plugins system
     plugins: Dict[str, bool] = field(default_factory=dict)
 

@@ -1,4 +1,5 @@
 name: S530D
+type: AAM_RADAR
 year: 1988
 fallback: R530F EM
 clsids:

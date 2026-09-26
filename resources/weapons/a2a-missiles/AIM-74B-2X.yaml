@@ -1,4 +1,5 @@
 name: 2xAIM-74B MUTANT
+type: AAM_RADAR
 year: 2030
 fallback: 2xAIM-74A MUTANT
 clsids:

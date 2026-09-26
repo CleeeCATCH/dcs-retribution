@@ -1,4 +1,5 @@
 name: K-13A
+type: AAM_IR
 year: 1962
 clsids:
   - "{K-13A}"

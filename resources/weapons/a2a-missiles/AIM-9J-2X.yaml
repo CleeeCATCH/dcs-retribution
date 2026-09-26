@@ -1,4 +1,5 @@
 name: 2xAIM-9J
+type: AAM_IR
 year: 1972
 fallback: 2xAIM-9B
 # Upgraded AIM-9B model, an imporvement over the earlier upgrades of 9D and 9E.

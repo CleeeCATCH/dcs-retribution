@@ -1,4 +1,5 @@
 name: AIM-54A-MK47
+type: AAM_RADAR
 year: 1974
 fallback: AIM-7MH
 clsids:

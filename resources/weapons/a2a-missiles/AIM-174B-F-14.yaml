@@ -5,6 +5,7 @@
 # The group name is internal; the loadout UI shows the pydcs name, so both groups
 # still display as "AIM-174B Gunslinger".
 name: AIM-174B Gunslinger (F-14)
+type: AAM_RADAR
 year: 2024
 fallback: AIM-54C-MK47
 clsids:

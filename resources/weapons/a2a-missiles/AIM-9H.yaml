@@ -1,4 +1,5 @@
 name: AIM-9H
+type: AAM_IR
 year: 1972
 fallback: AIM-9G
 clsids:

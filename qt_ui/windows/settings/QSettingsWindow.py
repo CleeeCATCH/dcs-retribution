@@ -43,6 +43,7 @@ from game.sim import GameUpdateEvents
 from qt_ui.widgets.QLabeledWidget import QLabeledWidget
 from qt_ui.widgets.spinsliders import FloatSpinSlider, TimeInputs
 from qt_ui.windows.GameUpdateSignal import GameUpdateSignal
+from qt_ui.windows.settings.a2amissiles import A2AMissilesPage
 from qt_ui.windows.settings.plugins import PluginOptionsPage, PluginsPage
 
 
@@ -373,6 +374,7 @@ class QSettingsWidget(QtWidgets.QWizardPage, SettingsContainer):
         for page in Settings.pages():
             self.pages[page] = AutoSettingsPage(page, self, self.applySettings)
 
+        self.a2a_missiles_page = A2AMissilesPage(self, self.applySettings)
         self.pluginsPage = PluginsPage(self)
         self.pluginsOptionsPage = PluginOptionsPage(self)
 
@@ -405,6 +407,16 @@ class QSettingsWidget(QtWidgets.QWizardPage, SettingsContainer):
             scroll.setWidget(page)
             scroll.setWidgetResizable(True)
             self.right_layout.addWidget(scroll)
+
+        a2a_missiles = QStandardItem("Air-to-Air Missiles")
+        a2a_missiles.setIcon(CONST.ICONS["Missile"])
+        a2a_missiles.setEditable(False)
+        a2a_missiles.setSelectable(True)
+        self.categoryModel.appendRow(a2a_missiles)
+        scroll = QScrollArea()
+        scroll.setWidget(self.a2a_missiles_page)
+        scroll.setWidgetResizable(True)
+        self.right_layout.addWidget(scroll)
 
         self.initCheatLayout()
         cheat = QStandardItem("Cheat Menu")
@@ -539,6 +551,7 @@ class QSettingsWidget(QtWidgets.QWizardPage, SettingsContainer):
             self.settings.enable_enemy_buy_sell
         )
 
+        self.a2a_missiles_page.update_from_settings()
         self.pluginsPage.update_from_settings()
         self.pluginsOptionsPage.update_from_settings()
 

@@ -1,4 +1,5 @@
 name: R-77
+type: AAM_RADAR
 year: 2002
 fallback: R-27ER
 clsids:

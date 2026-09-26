@@ -1,4 +1,5 @@
 name: AIM-200A Peregrine
+type: AAM_RADAR
 year: 2028
 fallback: AIM-120C
 clsids:

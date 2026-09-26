@@ -1,4 +1,5 @@
 name:  R550 Magic 1 IR AAM
+type: AAM_IR
 year: 1968
 clsids:
   - "{R550_Magic_1}"

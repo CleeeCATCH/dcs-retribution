@@ -1,4 +1,5 @@
 name: AIM-9L
+type: AAM_IR
 year: 1976
 fallback: AIM-9J
 clsids:

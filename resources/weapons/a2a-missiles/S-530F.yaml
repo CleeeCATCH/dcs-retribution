@@ -1,4 +1,5 @@
 name: S530F
+type: AAM_RADAR
 year: 1979
 fallback: S530D
 clsids:

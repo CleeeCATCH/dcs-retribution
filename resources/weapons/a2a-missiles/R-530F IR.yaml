@@ -1,4 +1,5 @@
 name: R530F IR
+type: AAM_IR
 year: 1962
 fallback: R530F EM
 clsids:

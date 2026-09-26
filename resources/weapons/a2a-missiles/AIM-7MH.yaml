@@ -1,4 +1,5 @@
 name: AIM-7MH
+type: AAM_RADAR
 year: 1987
 fallback: AIM-7M
 clsids:

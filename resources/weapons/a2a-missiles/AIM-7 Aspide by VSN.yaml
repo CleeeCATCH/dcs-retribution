@@ -1,4 +1,5 @@
 name: Aspide
+type: AAM_RADAR
 year: 1973
 fallback: AIM-7E-2
 # Italian semi-active MRAAM for F-104S
