@@ -24,6 +24,9 @@ class NewGameSettings(QtWidgets.QWizardPage):
         self.settings_widget = QSettingsWidget(settings)
         self.settings_widget.load_default_settings()
         self._load_campaign_settings(campaign, settings)
+        # Every campaign starts with the default loadout missiles, even if the
+        # Default.zip template or the campaign has preferred missiles saved.
+        settings.reset_preferred_missiles()
         settings.player_income_multiplier = (
             campaign.recommended_player_income_multiplier
         )
@@ -45,6 +48,7 @@ class NewGameSettings(QtWidgets.QWizardPage):
         sw = self.settings_widget
         sw.load_default_settings()
         self._load_campaign_settings(c, sw.settings)
+        sw.settings.reset_preferred_missiles()
         sw.settings.player_income_multiplier = c.recommended_player_income_multiplier
         sw.settings.enemy_income_multiplier = c.recommended_enemy_income_multiplier
         sw.update_from_settings()

@@ -180,3 +180,14 @@ def test_old_settings_default_to_no_preferences() -> None:
     loaded.__setstate__(state)
     assert loaded.player_preferred_radar_missiles == []
     assert loaded.enemy_preferred_ir_missiles == []
+
+
+def test_reset_preferred_missiles_restores_default_loadout_missiles() -> None:
+    settings = Settings()
+    settings.player_preferred_radar_missiles = ["AIM-120C"]
+    settings.player_preferred_ir_missiles = ["AIM-9X"]
+    settings.enemy_preferred_radar_missiles = ["R-77"]
+    settings.enemy_preferred_ir_missiles = ["R-60M"]
+    settings.reset_preferred_missiles()
+    assert preferred_missiles(settings, player=True) == _prefs()
+    assert preferred_missiles(settings, player=False) == _prefs()

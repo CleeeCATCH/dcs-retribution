@@ -1581,7 +1581,8 @@ class Settings:
 
     # Preferred air-to-air missiles, ranked best first, by missile family name (see
     # game.data.a2amissiles). Edited on the "Air-to-Air Missiles" settings page. Empty
-    # lists keep the missiles of the default loadouts.
+    # lists keep the missiles of the default loadouts, which is how every new campaign
+    # starts (see reset_preferred_missiles).
     player_preferred_radar_missiles: list[str] = field(default_factory=list)
     player_preferred_ir_missiles: list[str] = field(default_factory=list)
     enemy_preferred_radar_missiles: list[str] = field(default_factory=list)
@@ -1591,6 +1592,13 @@ class Settings:
     plugins: Dict[str, bool] = field(default_factory=dict)
 
     only_player_takeoff: bool = True  # Legacy parameter do not use
+
+    def reset_preferred_missiles(self) -> None:
+        """Go back to the missiles of the default loadouts."""
+        self.player_preferred_radar_missiles = []
+        self.player_preferred_ir_missiles = []
+        self.enemy_preferred_radar_missiles = []
+        self.enemy_preferred_ir_missiles = []
 
     @staticmethod
     def plugin_settings_key(identifier: str) -> str:

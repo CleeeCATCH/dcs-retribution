@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QFileDialog,
+    QMessageBox,
 )
 
 import qt_ui.uiconstants as CONST
@@ -348,12 +349,19 @@ class QSettingsWindow(QDialog):
     def __init__(self, game: Game):
         super().__init__()
         self.game = game
-        self.setLayout(QSettingsWidget(game.settings, game).layout)
+        self.settings_widget = QSettingsWidget(game.settings, game)
+        self.setLayout(self.settings_widget.layout)
 
         self.setModal(True)
         self.setWindowTitle("Settings")
         self.setWindowIcon(CONST.ICONS["Settings"])
         self.setMinimumSize(840, 480)
+
+    def reject(self) -> None:
+        # Closing the dialog (window button or Esc) ends up here.
+        if not self.settings_widget.a2a_missiles_page.confirm_close(self):
+            return
+        super().reject()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self._handle_mod_settings()
@@ -409,7 +417,7 @@ class QSettingsWidget(QtWidgets.QWizardPage, SettingsContainer):
             self.right_layout.addWidget(scroll)
 
         a2a_missiles = QStandardItem("Air-to-Air Missiles")
-        a2a_missiles.setIcon(CONST.ICONS["Missile"])
+        a2a_missiles.setIcon(CONST.ICONS["Ordnance"])
         a2a_missiles.setEditable(False)
         a2a_missiles.setSelectable(True)
         self.categoryModel.appendRow(a2a_missiles)
