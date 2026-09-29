@@ -8,6 +8,8 @@ description: >-
   4,400 kg of internal fuel and replace the fuselage AMRAAM rails with conformal
   stations for AMRAAM and AIM-200 racks and six-bomb rows of Mk-82, CBU-87/97,
   Rockeye or Durandal. It does not carry JASSM-ER, LRASM or SLAM-ER.
+  It is not listed in factions on its own: F-15EX flights switch to it with the
+  "Fit conformal fuel tanks" option in their payload settings.
 introduced: 2021
 manufacturer: Boeing
 origin: USA

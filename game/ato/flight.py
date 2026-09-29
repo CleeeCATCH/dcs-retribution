@@ -17,7 +17,7 @@ from .flightroster import FlightRoster
 from .flightstate import FlightState, Navigating, Uninitialized
 from .flightstate.killed import Killed
 from .flighttype import FlightType
-from .loadouts import Weapon
+from .loadouts import Loadout, Weapon
 from ..radio.CallsignContainer import CallsignContainer
 from ..radio.RadioFrequencyContainer import RadioFrequencyContainer
 from ..radio.TacanContainer import TacanContainer
@@ -71,6 +71,9 @@ class Flight(
         self.coalition = squadron.coalition
         self.squadron = squadron
         self.flight_type = flight_type
+        # Only meaningful for aircraft with a `conformal_tanks_variant`. Set before
+        # the roster is built, since that reads `unit_type` for default loadouts.
+        self.use_conformal_tanks = False
         if claim_inv:
             self.squadron.claim_inventory(count)
         if roster is None:
@@ -170,6 +173,8 @@ class Flight(
         state["state"] = Uninitialized(self, state["squadron"].settings)
         if "use_same_loadout_for_all_members" not in state:
             state["use_same_loadout_for_all_members"] = True
+        if "use_conformal_tanks" not in state:
+            state["use_conformal_tanks"] = False
         self.__dict__.update(state)
         if isinstance(self.roster, FlightRoster):
             self.roster = FlightMembers.from_roster(self, self.roster)
@@ -213,7 +218,40 @@ class Flight(
 
     @property
     def unit_type(self) -> AircraftType:
-        return self.squadron.aircraft
+        """The aircraft type this flight flies as.
+
+        This is the squadron's aircraft, except when the flight has been switched to
+        the CFT-equipped version of an airframe that DCS models as a separate unit
+        type (see `AircraftType.conformal_tanks_variant`). The squadron, its
+        inventory and its task capabilities stay those of the squadron's aircraft.
+        """
+        aircraft = self.squadron.aircraft
+        if self.use_conformal_tanks and (cft := aircraft.conformal_tanks_type):
+            return cft
+        return aircraft
+
+    @property
+    def can_use_conformal_tanks(self) -> bool:
+        cft = self.squadron.aircraft.conformal_tanks_type
+        return cft is not None and cft.capable_of(self.flight_type)
+
+    def set_conformal_tanks(self, enabled: bool) -> None:
+        """Switches between the plain and the CFT unit type of the airframe.
+
+        The two unit types have different stations and default loadouts, so every
+        member is given the new type's default loadout (custom loadouts included,
+        since their pylons may not exist on the other type) and fuel is reset to the
+        new type's full internal load.
+        """
+        if enabled == self.use_conformal_tanks:
+            return
+        self.use_conformal_tanks = enabled
+        for member in self.iter_members():
+            member.loadout = Loadout.default_for(self)
+            member.use_custom_loadout = False
+        if self.use_same_loadout_for_all_members:
+            self.roster.use_same_loadout_for_all_members()
+        self.initialize_fuel()
 
     @property
     def is_lha(self) -> bool:
@@ -259,6 +297,10 @@ class Flight(
 
     def set_flight_type(self, var: FlightType) -> None:
         self.flight_type = var
+        # The CFT unit type may lack the new task (the F-15EX with CFTs has no
+        # anti-ship stores); fall back to the plain airframe.
+        if self.use_conformal_tanks and not self.can_use_conformal_tanks:
+            self.set_conformal_tanks(False)
 
         # Update _flight_plan_builder so that the builder class remains relevant
         # to the flight type

@@ -38,6 +38,7 @@ class QEditFlightDialog(QDialog):
 
         self.flight_planner = QFlightPlanner(package_model, flight, game_model)
         self.flight_planner.squadron_changed.connect(self.on_squadron_change)
+        self.flight_planner.airframe_changed.connect(self.on_airframe_change)
         layout.addWidget(self.flight_planner)
 
         self.setLayout(layout)
@@ -51,6 +52,18 @@ class QEditFlightDialog(QDialog):
         self.reject()
         new_dialog = QEditFlightDialog(
             self.game_model, self.package_model, flight, self.parent()
+        )
+        new_dialog.show()
+
+    def on_airframe_change(self) -> None:
+        # The payload tab is built for one set of pylons and loadouts, so reopen the
+        # dialog on the payload tab rather than patching every widget in place.
+        self.accept()
+        new_dialog = QEditFlightDialog(
+            self.game_model, self.package_model, self.flight, self.parent()
+        )
+        new_dialog.flight_planner.setCurrentWidget(
+            new_dialog.flight_planner.payload_tab
         )
         new_dialog.show()
 

@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -113,7 +113,33 @@ class DcsFuelSelector(QHBoxLayout):
         return round(value * self.LBS2KGS_FACTOR)
 
 
+class ConformalTanksCheckBox(QCheckBox):
+    """Switches a flight between an airframe's plain and CFT unit types."""
+
+    def __init__(self, flight: Flight) -> None:
+        super().__init__("Fit conformal fuel tanks (CFTs)")
+        self.flight = flight
+        self.setChecked(flight.use_conformal_tanks)
+        cft = flight.squadron.aircraft.conformal_tanks_type
+        if not flight.use_conformal_tanks and not flight.can_use_conformal_tanks:
+            self.setEnabled(False)
+            self.setToolTip(
+                f"{cft} cannot fly {flight.flight_type.value} missions."
+                if cft is not None
+                else ""
+            )
+        else:
+            self.setToolTip(
+                f"Fly this flight as the {cft}. Its stations, default loadouts and "
+                "fuel differ, so switching resets every member's loadout and fuel."
+            )
+
+
 class QFlightPayloadTab(QFrame):
+    #: Emitted when the flight switches unit type (e.g. CFTs fitted or removed), which
+    #: changes the pylons, loadouts and fuel this tab was built for.
+    airframe_changed = Signal()
+
     def __init__(self, flight: Flight, game: Game):
         super(QFlightPayloadTab, self).__init__()
         self.flight = flight
@@ -124,6 +150,11 @@ class QFlightPayloadTab(QFrame):
         self.payload_editor.saved.connect(self.on_saved_payload)
 
         layout = QVBoxLayout()
+
+        if self.flight.squadron.aircraft.conformal_tanks_variant is not None:
+            self.cft_checkbox = ConformalTanksCheckBox(self.flight)
+            self.cft_checkbox.toggled.connect(self.on_conformal_tanks_toggled)
+            layout.addWidget(self.cft_checkbox)
 
         self.member_selector = FlightMemberSelector(self.flight, self)
         self.member_selector.valueChanged.connect(self.rebind_to_selected_member)
@@ -215,6 +246,10 @@ class QFlightPayloadTab(QFrame):
         layout.addWidget(docsText)
 
         self.setLayout(layout)
+
+    def on_conformal_tanks_toggled(self, checked: bool) -> None:
+        self.flight.set_conformal_tanks(checked)
+        self.airframe_changed.emit()
 
     def resize_for_flight(self) -> None:
         self.member_selector.setMaximum(self.flight.count - 1)

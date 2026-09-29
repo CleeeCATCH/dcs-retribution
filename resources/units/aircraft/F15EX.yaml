@@ -4,15 +4,20 @@ description: >-
   AESA radar and a fly-by-wire, all-glass cockpit with more powerful engines, and
   its outer wing stations and AMBER shoulder rails let it carry up to 22 AMRAAMs.<br /><br />
 
-  This entry is Spino's F-15EX mod without conformal fuel tanks: AMRAAM tandem
-  rails on the fuselage stations, JASSM-ER, LRASM and SLAM-ER on the inboard wing
-  pylons, and AIM-200, AIM-260, MAKO and AARGM-ER on the new outer stations.
+  This entry is Spino's F-15EX mod. Without conformal fuel tanks it carries
+  AMRAAM tandem rails on the fuselage stations, JASSM-ER, LRASM and SLAM-ER on the
+  inboard wing pylons, and AIM-200, AIM-260, MAKO and AARGM-ER on the new outer
+  stations. Tick "Fit conformal fuel tanks" in a flight's payload settings to fly
+  it with CFTs instead: about 4,400 kg more fuel and conformal stations for AMRAAM
+  and AIM-200 racks and six-bomb rows, but no JASSM-ER, LRASM or SLAM-ER.
 introduced: 2021
 manufacturer: Boeing
 origin: USA
 price: 30
 role: Multirole Fighter
 max_range: 400
+# DCS models the CFT jet as its own unit type; flights can switch to it.
+conformal_tanks_variant: F-15EX Eagle II (CFT)
 variants:
   F-15EX Eagle II: {}
 tasks:

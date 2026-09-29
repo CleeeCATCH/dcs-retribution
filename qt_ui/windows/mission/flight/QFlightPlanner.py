@@ -12,11 +12,13 @@ from qt_ui.windows.mission.flight.waypoints.QFlightWaypointTab import QFlightWay
 
 class QFlightPlanner(QTabWidget):
     squadron_changed = Signal(Flight)
+    airframe_changed = Signal()
 
     def __init__(self, package_model: PackageModel, flight: Flight, gm: GameModel):
         super().__init__()
 
         self.payload_tab = QFlightPayloadTab(flight, gm.game)
+        self.payload_tab.airframe_changed.connect(self.airframe_changed)
 
         self.waypoint_tab = QFlightWaypointTab(gm.game, package_model.package, flight)
         self.waypoint_tab.loadout_changed.connect(self.payload_tab.reload_from_flight)

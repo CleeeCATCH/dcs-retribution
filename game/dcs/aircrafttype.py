@@ -256,6 +256,12 @@ class AircraftType(UnitType[Type[FlyingType]]):
     #: that declare no block.
     property_date_gate: PropertyDateGate = PropertyDateGate()
 
+    #: Variant ID of the same airframe fitted with conformal fuel tanks, when DCS (or
+    #: a mod) models that as a separate unit type. A flight of this aircraft can then
+    #: switch to the CFT unit type in its payload settings; see
+    #: `Flight.set_conformal_tanks`.
+    conformal_tanks_variant: Optional[str] = None
+
     _by_name: ClassVar[dict[str, AircraftType]] = {}
     _by_unit_type: ClassVar[dict[type[FlyingType], list[AircraftType]]] = defaultdict(
         list
@@ -494,6 +500,12 @@ class AircraftType(UnitType[Type[FlyingType]]):
                 capable.append(aircraft)
         return list(reversed(sorted(capable, key=lambda a: a.task_priority(task))))
 
+    @property
+    def conformal_tanks_type(self) -> Optional[AircraftType]:
+        if self.conformal_tanks_variant is None:
+            return None
+        return AircraftType.named(self.conformal_tanks_variant)
+
     def iter_task_capabilities(self) -> Iterator[FlightType]:
         yield from self.task_priorities
 
@@ -626,6 +638,7 @@ class AircraftType(UnitType[Type[FlyingType]]):
             property_date_gate=PropertyDateGate.from_data(
                 data.get("date_gated_properties")
             ),
+            conformal_tanks_variant=data.get("conformal_tanks_variant"),
         )
 
     @classmethod
