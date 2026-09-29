@@ -16,6 +16,7 @@
 * **[Modding]** Add CurrentHill UK Assets Pack support (v1.1.2)
 * **[Layouts]** Add signature to layouts' binary file for automatic reloading of updated layouts.
 * **[Modding]** Add support for Su-35S mod (v2.0.27b)
+* **[Modding]** Add support for the F-15EX Eagle II mod (v2.33 by Spino), as separate F-15EX and F-15EX (CFT) aircraft with their own loadouts
 * **[Plugins]** Update EW Script to version 2.1
 * **[Options]** New option to spawn TACAN beacons at captured airfields
 * **[UX]** Show an "End of Mission Detected, processing Mission Data" busy dialog while turn results are processed, so the wait is not mistaken for a missed detection

@@ -1,0 +1,5 @@
+name: AGM-183A ARRW
+year: 2025
+fallback: AGM-158B JASSM-ER
+clsids:
+  - "{AGM183A}"   # AGM-183A ARRW - Hypersonic Strike Missile (F-15EX)

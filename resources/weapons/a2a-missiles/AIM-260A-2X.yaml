@@ -5,3 +5,6 @@ fallback: 2xAIM-120D-3
 clsids:
   - "{LAU_115_2xAIM-260A}"   # LAU-115 with 2 x LAU-127 AIM-260A JATM
   - "{LAU_115_2xAIM-260}"   # LAU-115 with 2 x LAU-127 AIM-260A JATM - Active Radar NGAAM
+  - "{F15EX_2xAIM-260A}"   # 2 x AIM-260A JATM (F-15EX outer rail)
+  - "{F-15EX_AIM-260A_IN_O}"   # 2 x AIM-260A JATM (F-15EX stations 3/11)
+  - "{F-15EX_AIM-260A_IN}"   # 2 x AIM-260A JATM (F-15EX stations 4/10)

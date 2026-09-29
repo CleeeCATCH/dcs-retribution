@@ -1,6 +1,8 @@
 name: AGM-88G AARGM-ER
 type: ARM
 year: 2023
-fallback: AGM-88C HARM
+fallback: AGM-88F HCSM
 clsids:
   - "{LAU_118A_AGM-88G}"   # AGM-88G AARGM - Anti-Radiation AGM
+  - "{aargm_er}"   # AGM-88G AARGM-ER (F-15EX)
+  - "{AGM88G_F-15EX}"   # AGM-88G AARGM-ER (F-15EX outer rail)

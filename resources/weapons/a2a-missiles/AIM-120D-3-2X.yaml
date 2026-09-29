@@ -4,3 +4,6 @@ year: 2023
 fallback: 2xAIM-120C
 clsids:
   - "{LAU_115_2xAIM-120D-3}"   # LAU-115 with 2 x LAU-127 AIM-120D-3 AMRAAM
+  - "{F15EX_2xAIM-120D-3}"   # 2 x AIM-120D-3 AMRAAM (F-15EX outer rail)
+  - "{F-15EX_AIM-120D3_IN_O}"   # 2 x AIM-120D-3 AMRAAM (F-15EX stations 3/11)
+  - "{F-15EX_AIM-120D3_IN}"   # 2 x AIM-120D-3 AMRAAM (F-15EX stations 4/10)

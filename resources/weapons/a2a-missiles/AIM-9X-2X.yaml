@@ -4,3 +4,6 @@ year: 2003
 fallback: 2xAIM-9M
 clsids:
   - "LAU-115_2*LAU-127_AIM-9X"
+  - "{F-15EX_AIM-9X_O}"   # 2 x AIM-9X Sidewinder (F-15EX outer rail)
+  - "{F-15EX_AIM-9X_IN_O}"   # 2 x AIM-9X Sidewinder (F-15EX stations 3/11)
+  - "{F-15EX_AIM-9X_IN}"   # 2 x AIM-9X Sidewinder (F-15EX stations 4/10)

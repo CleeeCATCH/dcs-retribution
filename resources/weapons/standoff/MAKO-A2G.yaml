@@ -4,3 +4,6 @@ year: 2028
 fallback: AGM-88G AARGM-ER
 clsids:
   - "{BRU_33A_2x_MAKO_A2G_C}"   # 2 x Mako Multi-Mission Hypersonic Missile - Anti-Radiation AGM
+  - "{MAKO_A2G_C}"   # Mako Multi-Mission Hypersonic Missile - Anti-Radiation AGM (F-15EX)
+  - "{BRU_57_MAKO_A2G_C}"   # BRU-57 with 2 x Mako - Anti-Radiation AGM (F-15EX)
+  - "{F-15EX_MAKO_A2G_C}"   # 2 x Mako - Anti-Radiation AGM (F-15EX outer rail)

@@ -4,3 +4,16 @@ year: 1996
 fallback: 2xAIM-120B
 clsids:
   - "LAU-115_2*LAU-127_AIM-120C"
+  - "{F15EX_2xAIM-120C-5}"   # 2 x AIM-120C-5 AMRAAM (F-15EX outer rail)
+  - "{F15EX_2xAIM-120C-7}"   # 2 x AIM-120C-7 AMRAAM (F-15EX outer rail)
+  - "{F15EX_2xAIM-120C-8}"   # 2 x AIM-120C-8 AMRAAM (F-15EX outer rail)
+  - "{F-15EX_AIM-120C5_IN_O}"   # 2 x AIM-120C-5 AMRAAM (F-15EX stations 3/11)
+  - "{F-15EX_AIM-120C7_IN_O}"   # 2 x AIM-120C-7 AMRAAM (F-15EX stations 3/11)
+  - "{F-15EX_AIM-120C8_IN_O}"   # 2 x AIM-120C-8 AMRAAM (F-15EX stations 3/11)
+  - "{F-15EX_AIM-120C5_IN}"   # 2 x AIM-120C-5 AMRAAM (F-15EX stations 4/10)
+  - "{F-15EX_AIM-120C7_IN}"   # 2 x AIM-120C-7 AMRAAM (F-15EX stations 4/10)
+  - "{F-15EX_AIM-120C8_IN}"   # 2 x AIM-120C-8 AMRAAM (F-15EX stations 4/10)
+  - "{F-15EX_AIM120C_TANDEM_L}"   # 2 x AIM-120C AMRAAM (F-15EX fuselage tandem, left)
+  - "{F-15EX_AIM120C_TANDEM_R}"   # 2 x AIM-120C AMRAAM (F-15EX fuselage tandem, right)
+  - "{F-15EX_AIM120C_CFT}"   # 2 x AIM-120C AMRAAM (F-15EX CFT)
+  - "{F15EX_LAU_115_2xAIM-120C-8}"   # LAU-115 with 2 x LAU-127 AIM-120C-8 AMRAAM (F-15EX)

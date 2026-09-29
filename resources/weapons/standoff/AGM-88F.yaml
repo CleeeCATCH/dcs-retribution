@@ -1,0 +1,7 @@
+name: AGM-88F HCSM
+type: ARM
+year: 2016
+fallback: AGM-88C HARM
+clsids:
+  - "{harmF-15ex}"   # AGM-88F HCSM (F-15EX)
+  - "{AGM-88F_F15EX}"   # AGM-88F HCSM (F-15EX outer rail)

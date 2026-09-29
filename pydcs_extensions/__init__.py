@@ -14,6 +14,7 @@ from .f14_aim54d import *
 from .f14_aim174b import *
 from .f14_aim9x import *
 from .f15d import *
+from .f15ex import *
 from .f15i_idf import *
 from .f16i_idf import *
 from .f4e_expanded_weapons import *

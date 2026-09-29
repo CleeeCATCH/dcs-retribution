@@ -6,3 +6,6 @@ clsids:
   - "{AIM200-2XRACK}"   # 2 x AIM-200A Peregrine Active Radar AAM
   - "{AIM200_2XRACK_IRST_LEFT}"   # 2 x AIM-200A Peregrine + IRST POD
   - "{AIM200_2XRACK_IRST_RIGHT}"   # 2 x AIM-200A Peregrine + IRST POD
+  - "{F-15EX_AIM200_TANDEM}"   # 2 x AIM-200A Peregrine (F-15EX tandem)
+  - "{AIM200_X3_F-15EX}"   # 3 x AIM-200A Peregrine (F-15EX CFT)
+  - "{AIM200-4XRACK}"   # 4 x AIM-200A Peregrine (F-15EX)
