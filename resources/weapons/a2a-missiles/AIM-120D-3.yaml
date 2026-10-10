@@ -6,3 +6,23 @@ clsids:
   - "{AIM-120D-3}"   # AIM-120D-3 - AMRAAM - Active Radar AAM
   - "{AIM_120D_3_IRST_LEFT}"   # AIM-120D-3 AMRAAM + IRST POD
   - "{AIM_120D_3_IRST_RIGHT}"   # AIM-120D-3 AMRAAM + IRST POD
+  - "{F15EX_AIM-120D-3_CFT_A}"   # AIM-120D-3 AMRAAM - Active Radar AAM (CFT Aft) (F-15EX)
+  - "{F15EX_AIM-120D-3_CFT_F}"   # AIM-120D-3 AMRAAM - Active Radar AAM (CFT Forward) (F-15EX)
+  - "{F15EX_AIM-120D-3_FUS_LA}"   # AIM-120D-3 AMRAAM - Active Radar AAM (Fuselage LA) (F-15EX)
+  - "{F15EX_AIM-120D-3_FUS_LF}"   # AIM-120D-3 AMRAAM - Active Radar AAM (Fuselage LF) (F-15EX)
+  - "{F15EX_AIM-120D-3_FUS_RA}"   # AIM-120D-3 AMRAAM - Active Radar AAM (Fuselage RA) (F-15EX)
+  - "{F15EX_AIM-120D-3_FUS_RF}"   # AIM-120D-3 AMRAAM - Active Radar AAM (Fuselage RF) (F-15EX)
+  - "{F15EX_AIM-120D-3_STA11A}"   # AIM-120D-3 AMRAAM - Active Radar AAM (Station 11A) (F-15EX)
+  - "{F15EX_AIM-120D-3_STA11B}"   # AIM-120D-3 AMRAAM - Active Radar AAM (Station 11B) (F-15EX)
+  - "{F15EX_AIM-120D-3_STA2A}"   # AIM-120D-3 AMRAAM - Active Radar AAM (Station 2A) (F-15EX)
+  - "{F15EX_AIM-120D-3_STA2B}"   # AIM-120D-3 AMRAAM - Active Radar AAM (Station 2B) (F-15EX)
+  - "{F15EX_AIM-120D_CFT_A}"   # AIM-120D P3I AMRAAM - Active Radar AAM (CFT Aft) (F-15EX)
+  - "{F15EX_AIM-120D_CFT_F}"   # AIM-120D P3I AMRAAM - Active Radar AAM (CFT Forward) (F-15EX)
+  - "{F15EX_AIM-120D_FUS_LA}"   # AIM-120D P3I AMRAAM - Active Radar AAM (Fuselage LA) (F-15EX)
+  - "{F15EX_AIM-120D_FUS_LF}"   # AIM-120D P3I AMRAAM - Active Radar AAM (Fuselage LF) (F-15EX)
+  - "{F15EX_AIM-120D_FUS_RA}"   # AIM-120D P3I AMRAAM - Active Radar AAM (Fuselage RA) (F-15EX)
+  - "{F15EX_AIM-120D_FUS_RF}"   # AIM-120D P3I AMRAAM - Active Radar AAM (Fuselage RF) (F-15EX)
+  - "{F15EX_AIM-120D_STA11A}"   # AIM-120D P3I AMRAAM - Active Radar AAM (Station 11A) (F-15EX)
+  - "{F15EX_AIM-120D_STA11B}"   # AIM-120D P3I AMRAAM - Active Radar AAM (Station 11B) (F-15EX)
+  - "{F15EX_AIM-120D_STA2A}"   # AIM-120D P3I AMRAAM - Active Radar AAM (Station 2A) (F-15EX)
+  - "{F15EX_AIM-120D_STA2B}"   # AIM-120D P3I AMRAAM - Active Radar AAM (Station 2B) (F-15EX)

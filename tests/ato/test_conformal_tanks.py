@@ -70,19 +70,19 @@ def test_switching_on_changes_unit_type_loadout_and_fuel() -> None:
     assert flight.squadron.aircraft.dcs_id == "F15EX"
     assert flight.fuel == flight.unit_type.dcs_unit_type.fuel_max
     for member in flight.iter_members():
-        # Pylons 4/8 hold the CFT AMRAAM pair only on the CFT type.
-        weapon = member.loadout.pylons[4]
-        assert weapon is not None and weapon.clsid == "{F-15EX_AIM120C_CFT}"
+        # Station 5 holds an AMBER pair only on the CFT type.
+        weapon = member.loadout.pylons[5]
+        assert weapon is not None and weapon.clsid == "{AMBER_2xAIM120D}"
         assert not member.loadout.is_custom
 
     flight.set_conformal_tanks(False)
     assert flight.unit_type.dcs_id == "F15EX"
-    weapon = flight.roster.members[0].loadout.pylons[4]
-    assert weapon is not None and weapon.clsid == "{F-15EX_AIM120C_TANDEM_L}"
+    weapon = flight.roster.members[0].loadout.pylons[5]
+    assert weapon is not None and weapon.clsid == "{F15EX_AIM-120D-3_FUS_LF}"
 
 
 def test_custom_loadouts_are_replaced_on_switch() -> None:
-    flight = _flight(FlightType.STRIKE)
+    flight = _flight(FlightType.BARCAP)
     member = flight.roster.members[0]
     member.loadout = member.loadout.derive_custom("Custom")
     member.use_custom_loadout = True
@@ -94,18 +94,19 @@ def test_custom_loadouts_are_replaced_on_switch() -> None:
 
 
 def test_cft_not_offered_for_tasks_the_cft_jet_lacks() -> None:
-    flight = _flight(FlightType.ANTISHIP)
+    # The mod's V3 carries no air-to-ground stores.
+    flight = _flight(FlightType.STRIKE)
     assert not flight.can_use_conformal_tanks
 
 
 def test_task_change_drops_cfts_the_new_task_cannot_use() -> None:
-    flight = _flight(FlightType.STRIKE)
+    flight = _flight(FlightType.BARCAP)
     flight.set_conformal_tanks(True)
     flight.coalition = SimpleNamespace(  # type: ignore[assignment]
         game=SimpleNamespace(settings=None)
     )
 
-    flight.set_flight_type(FlightType.ANTISHIP)
+    flight.set_flight_type(FlightType.STRIKE)
 
     assert not flight.use_conformal_tanks
     assert flight.unit_type.dcs_id == "F15EX"

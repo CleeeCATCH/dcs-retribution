@@ -4,3 +4,7 @@ year: 2006
 fallback: AIM-9X
 clsids:
   - "{PYTHON}"   # Python-5 IR AAM
+  - "{F15EX_PYTHON-5_STA11A}"   # Python-5 IR AAM (Station 11A) (F-15EX)
+  - "{F15EX_PYTHON-5_STA11B}"   # Python-5 IR AAM (Station 11B) (F-15EX)
+  - "{F15EX_PYTHON-5_STA2A}"   # Python-5 IR AAM (Station 2A) (F-15EX)
+  - "{F15EX_PYTHON-5_STA2B}"   # Python-5 IR AAM (Station 2B) (F-15EX)

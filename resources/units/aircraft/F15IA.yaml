@@ -1,0 +1,23 @@
+description: >-
+  The F-15IA is Israel's variant of the F-15EX, ordered in 2024 to serve
+  alongside the F-15I Ra'am. It shares the EX's AN/APG-82 AESA radar, fly-by-wire
+  controls and glass cockpit.<br /><br />
+
+  This entry is the F-15IA from Spino's F-15EX mod (V3): the conformal fuel tank
+  airframe, with Python-5 as well as AIM-9X on the wing rails, and CFT and AMBER
+  stations for AMRAAM, AIM-260A, AIM-200A and AIM-174B. V3 carries air-to-air
+  stores only.
+introduced: 2031
+manufacturer: Boeing
+origin: USA
+price: 32
+role: Air Superiority Fighter
+max_range: 500
+variants:
+  F-15IA: {}
+tasks:
+  BARCAP: 540
+  Escort: 540
+  Fighter sweep: 540
+  Intercept: 540
+  TARCAP: 540

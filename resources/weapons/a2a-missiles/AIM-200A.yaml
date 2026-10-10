@@ -4,3 +4,9 @@ year: 2028
 fallback: AIM-120C
 clsids:
   - "{AIM-200A}"   # AIM-200A Peregrine Active Radar AAM
+  - "{F15EX_AIM-200A_CFT_A}"   # AIM-200A - Active Radar AAM (CFT Aft) (F-15EX)
+  - "{F15EX_AIM-200A_CFT_F}"   # AIM-200A - Active Radar AAM (CFT Forward) (F-15EX)
+  - "{F15EX_AIM-200A_FUS_LA}"   # AIM-200A - Active Radar AAM (Fuselage LA) (F-15EX)
+  - "{F15EX_AIM-200A_FUS_LF}"   # AIM-200A - Active Radar AAM (Fuselage LF) (F-15EX)
+  - "{F15EX_AIM-200A_FUS_RA}"   # AIM-200A - Active Radar AAM (Fuselage RA) (F-15EX)
+  - "{F15EX_AIM-200A_FUS_RF}"   # AIM-200A - Active Radar AAM (Fuselage RF) (F-15EX)

@@ -6,3 +6,13 @@ clsids:
   - "{AIM-260A}"   # AIM-260A JATM - Active Radar AAM
   - "{AIM_260A_IRST_LEFT}"   # AIM-260A JATM + IRST POD
   - "{AIM_260A_IRST_RIGHT}"   # AIM-260A JATM + IRST POD
+  - "{F15EX_AIM-260A_CFT_A}"   # AIM-260A - Active Radar AAM (CFT Aft) (F-15EX)
+  - "{F15EX_AIM-260A_CFT_F}"   # AIM-260A - Active Radar AAM (CFT Forward) (F-15EX)
+  - "{F15EX_AIM-260A_FUS_LA}"   # AIM-260A - Active Radar AAM (Fuselage LA) (F-15EX)
+  - "{F15EX_AIM-260A_FUS_LF}"   # AIM-260A - Active Radar AAM (Fuselage LF) (F-15EX)
+  - "{F15EX_AIM-260A_FUS_RA}"   # AIM-260A - Active Radar AAM (Fuselage RA) (F-15EX)
+  - "{F15EX_AIM-260A_FUS_RF}"   # AIM-260A - Active Radar AAM (Fuselage RF) (F-15EX)
+  - "{F15EX_AIM-260A_STA11A}"   # AIM-260A - Active Radar AAM (Station 11A) (F-15EX)
+  - "{F15EX_AIM-260A_STA11B}"   # AIM-260A - Active Radar AAM (Station 11B) (F-15EX)
+  - "{F15EX_AIM-260A_STA2A}"   # AIM-260A - Active Radar AAM (Station 2A) (F-15EX)
+  - "{F15EX_AIM-260A_STA2B}"   # AIM-260A - Active Radar AAM (Station 2B) (F-15EX)

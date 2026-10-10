@@ -238,7 +238,7 @@ class GeneratorOptions(QtWidgets.QWizardPage):
             ("F-105 Thunderchief (v2.7.12.23x)", self.f105_thunderchief),
             ("F-106 Delta Dart (v2.9.4.101)", self.f106_deltadart),
             ("F-15D Baz (v1.0)", self.f15d_baz),
-            ("F-15EX Eagle II (v2.33 by Spino, EFM)", self.f15ex),
+            ("F-15EX Eagle II / F-15IA (V3 by Spino, EFM)", self.f15ex),
             ("F-15I Ra'am (v1.0 by IDF Mods Project)", self.f_15_idf),
             ("F-16I Sufa & F-16D (v3.6 by IDF Mods Project)", self.f_16_idf),
             ("F-22A Raptor (v2.0.0 released May 2025)", self.f22_raptor),

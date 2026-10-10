@@ -484,6 +484,7 @@ class Faction:
         if not mod_settings.f15ex:
             self.remove_aircraft("F15EX")
             self.remove_aircraft("F15EX_CFT")
+            self.remove_aircraft("F15IA")
         if not mod_settings.f84g_thunderjet:
             self.remove_aircraft("VSN_F84G")
         if not mod_settings.f100_supersabre:

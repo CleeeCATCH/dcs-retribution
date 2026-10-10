@@ -2,36 +2,27 @@ description: >-
   The F-15EX Eagle II is the latest development of the F-15E Strike Eagle,
   bought by the USAF to replace its ageing F-15C/D fleet. It pairs the AN/APG-82
   AESA radar and a fly-by-wire, all-glass cockpit with more powerful engines, and
-  its outer wing stations and AMBER shoulder rails let it carry up to 22 AMRAAMs.<br /><br />
+  its outer wing stations and AMBER racks let it carry up to 22 AMRAAMs.<br /><br />
 
-  This entry is Spino's F-15EX mod. Without conformal fuel tanks it carries
-  AMRAAM tandem rails on the fuselage stations, JASSM-ER, LRASM and SLAM-ER on the
-  inboard wing pylons, and AIM-200, AIM-260, MAKO and AARGM-ER on the new outer
-  stations. Tick "Fit conformal fuel tanks" in a flight's payload settings to fly
-  it with CFTs instead: about 4,400 kg more fuel and conformal stations for AMRAAM
-  and AIM-200 racks and six-bomb rows, but no JASSM-ER, LRASM or SLAM-ER.
+  This entry is Spino's F-15EX mod (V3, with its own flight model and avionics).
+  Without conformal fuel tanks it carries single AMRAAM, AIM-260A or AIM-200A
+  rounds on the fuselage stations, twin rails on the outer wing stations and
+  LAU-115s or the AIM-174B on the wing pylons. Tick "Fit conformal fuel tanks" in a
+  flight's payload settings to fly it with CFTs instead: about 4,400 kg more fuel
+  and CFT and AMBER stations for more missiles. V3 carries air-to-air stores only.
 introduced: 2021
 manufacturer: Boeing
 origin: USA
 price: 30
-role: Multirole Fighter
+role: Air Superiority Fighter
 max_range: 400
 # DCS models the CFT jet as its own unit type; flights can switch to it.
 conformal_tanks_variant: F-15EX Eagle II (CFT)
 variants:
   F-15EX Eagle II: {}
 tasks:
-  Anti-ship: 300
-  BAI: 700
   BARCAP: 545
-  CAS: 700
-  DEAD: 460
   Escort: 545
   Fighter sweep: 545
   Intercept: 545
-  OCA/Aircraft: 700
-  OCA/Runway: 600
-  SEAD: 460
-  SEAD Escort: 460
-  Strike: 600
   TARCAP: 545

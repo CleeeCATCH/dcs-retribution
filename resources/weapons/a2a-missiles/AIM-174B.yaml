@@ -4,3 +4,5 @@ year: 2024
 fallback: AIM-120D-3
 clsids:
   - "{LAU_118_AIM-174B}"   # AIM-174B Gunslinger - Active Radar ULRAAM
+  - "{F15EX_AIM-174B_CFT}"   # AIM-174B Gunslinger - Active Radar ULRAAM (CFT) (F-15EX)
+  - "{F15EX_AIM-174B}"   # AIM-174B Gunslinger - Active Radar ULRAAM (F-15EX)

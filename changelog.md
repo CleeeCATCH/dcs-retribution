@@ -16,7 +16,7 @@
 * **[Modding]** Add CurrentHill UK Assets Pack support (v1.1.2)
 * **[Layouts]** Add signature to layouts' binary file for automatic reloading of updated layouts.
 * **[Modding]** Add support for Su-35S mod (v2.0.27b)
-* **[Modding]** Add support for the F-15EX Eagle II mod (v2.33 by Spino, with EFM), as a single F-15EX whose flights can fit conformal fuel tanks from their payload settings
+* **[Modding]** Add support for the F-15EX Eagle II mod (V3 by Spino, with EFM), as a single F-15EX whose flights can fit conformal fuel tanks from their payload settings, plus the mod's F-15IA. V3 carries air-to-air stores only, so both are planned for air-to-air missions only
 * **[Plugins]** Update EW Script to version 2.1
 * **[Options]** New option to spawn TACAN beacons at captured airfields
 * **[UX]** Show an "End of Mission Detected, processing Mission Data" busy dialog while turn results are processed, so the wait is not mistaken for a missed detection
