@@ -65,13 +65,26 @@ class SquadronLiverySelector(QComboBox):
     The combo box will automatically be populated with all available liveries.
     """
 
-    def __init__(self, squadron: Squadron, update_squadron: bool = True) -> None:
+    def __init__(
+        self,
+        squadron: Squadron,
+        update_squadron: bool = True,
+        aircraft_type: AircraftType | None = None,
+    ) -> None:
+        """
+        aircraft_type is the unit type to list liveries for, when that is not the
+        squadron's own aircraft (a flight switched to the CFT unit type of its
+        airframe). The squadron's livery and livery-set are chosen for the squadron's
+        aircraft, so they are not offered for a different unit type.
+        """
         super().__init__()
         self.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
         self.squadron = squadron
-        self.aircraft_type = squadron.aircraft
-        selected_livery = squadron.livery
+        self.aircraft_type = aircraft_type or squadron.aircraft
+        own_aircraft = self.aircraft_type is squadron.aircraft
+        selected_livery = squadron.livery if own_aircraft else None
+        livery_set = squadron.livery_set if own_aircraft else []
 
         if update_squadron:
             self.currentTextChanged.connect(self.on_change)
@@ -97,19 +110,19 @@ class SquadronLiverySelector(QComboBox):
             # squadron livery not found, or incompatible with faction
             # => attempt to use the unit's default-livery as a fallback
             selected_livery = None
-        if squadron.livery_set:
+        if livery_set:
             self.addItem(LIVERY_SET_TEXT, userData=None)
         if len(overrides) > 0:
             self.addItem("Use livery overrides", userData=None)
         if (
             selected_livery is None
-            and not squadron.livery_set
-            and squadron.aircraft.default_livery
+            and not livery_set
+            and self.aircraft_type.default_livery
         ):
-            selected_livery = squadron.aircraft.default_livery
+            selected_livery = self.aircraft_type.default_livery
         for livery in sorted(liveries):
             self.addItem(livery.name, userData=livery.id)
-            if selected_livery is not None and not squadron.livery_set:
+            if selected_livery is not None and not livery_set:
                 if selected_livery.lower() == livery.id:
                     self.setCurrentText(livery.name)
         if len(liveries) == 0:

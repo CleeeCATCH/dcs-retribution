@@ -122,3 +122,29 @@ def test_old_saves_default_to_no_cfts() -> None:
     restored = Flight.__new__(Flight)
     restored.__setstate__(state)
     assert restored.use_conformal_tanks is False
+
+
+def test_switch_clears_liveries_of_the_other_unit_type() -> None:
+    flight = _flight(FlightType.BARCAP)
+    for member in flight.iter_members():
+        member.livery = "plain f-15ex livery"
+
+    flight.set_conformal_tanks(True)
+
+    assert all(member.livery is None for member in flight.iter_members())
+
+
+def test_squadron_liveries_are_not_painted_on_the_cft_jet() -> None:
+    from game.missiongenerator.aircraft.aircraftpainter import AircraftPainter
+
+    flight = _flight(FlightType.BARCAP)
+    flight.squadron.livery = "plain f-15ex livery"  # type: ignore[attr-defined]
+    flight.squadron.livery_set = ["plain f-15ex livery"]  # type: ignore[attr-defined]
+    flight.squadron.use_livery_set = True  # type: ignore[attr-defined]
+    painter = AircraftPainter(flight, None)  # type: ignore[arg-type]
+    assert painter.livery_from_squadron() == "plain f-15ex livery"
+
+    flight.set_conformal_tanks(True)
+
+    assert painter.livery_from_squadron() is None
+    assert painter.livery_from_squadron_set(member_uses_livery_set=True) is None

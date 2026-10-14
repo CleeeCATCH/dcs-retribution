@@ -241,7 +241,8 @@ class Flight(
         The two unit types have different stations and default loadouts, so every
         member is given the new type's default loadout (custom loadouts included,
         since their pylons may not exist on the other type) and fuel is reset to the
-        new type's full internal load.
+        new type's full internal load. Liveries are cleared too: each unit type
+        has its own livery folder in DCS.
         """
         if enabled == self.use_conformal_tanks:
             return
@@ -249,6 +250,7 @@ class Flight(
         for member in self.iter_members():
             member.loadout = Loadout.default_for(self)
             member.use_custom_loadout = False
+            member.livery = None
         if self.use_same_loadout_for_all_members:
             self.roster.use_same_loadout_for_all_members()
         self.initialize_fuel()

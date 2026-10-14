@@ -26,10 +26,21 @@ class AircraftPainter:
             return random.choice(choices)
         return None
 
+    @property
+    def flies_squadron_aircraft(self) -> bool:
+        # A flight switched to the CFT unit type of its airframe is a different DCS
+        # unit with its own liveries, so the squadron's (chosen for the squadron's
+        # aircraft) don't apply to it.
+        return self.flight.unit_type is self.flight.squadron.aircraft
+
     def livery_from_squadron(self) -> Optional[str]:
+        if not self.flies_squadron_aircraft:
+            return None
         return self.flight.squadron.livery
 
     def livery_from_squadron_set(self, member_uses_livery_set: bool) -> Optional[str]:
+        if not self.flies_squadron_aircraft:
+            return None
         if not (
             self.flight.squadron.livery_set
             and (self.flight.squadron.use_livery_set or member_uses_livery_set)
