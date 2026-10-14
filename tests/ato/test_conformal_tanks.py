@@ -138,9 +138,9 @@ def test_squadron_liveries_are_not_painted_on_the_cft_jet() -> None:
     from game.missiongenerator.aircraft.aircraftpainter import AircraftPainter
 
     flight = _flight(FlightType.BARCAP)
-    flight.squadron.livery = "plain f-15ex livery"  # type: ignore[attr-defined]
-    flight.squadron.livery_set = ["plain f-15ex livery"]  # type: ignore[attr-defined]
-    flight.squadron.use_livery_set = True  # type: ignore[attr-defined]
+    flight.squadron.livery = "plain f-15ex livery"
+    flight.squadron.livery_set = ["plain f-15ex livery"]
+    flight.squadron.use_livery_set = True
     painter = AircraftPainter(flight, None)  # type: ignore[arg-type]
     assert painter.livery_from_squadron() == "plain f-15ex livery"
 
