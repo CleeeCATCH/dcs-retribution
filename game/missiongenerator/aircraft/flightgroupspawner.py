@@ -58,6 +58,10 @@ RTB_ALTITUDE = meters(800)
 RTB_DISTANCE = 5000
 HELI_ALT = 500
 
+# pydcs has no runway geometry, so the departure end of the active runway is estimated
+# as this far behind the airfield's reference point along the takeoff heading.
+DEPARTURE_END_OFFSET = meters(1250)
+
 
 class FlightGroupSpawner:
     def __init__(
@@ -376,6 +380,11 @@ class FlightGroupSpawner:
         # player is generating the mission for multiplayer (which would need a new
         # option).
         self.flight.unit_type.dcs_unit_type.load_payloads()
+        if parking_slots is None:
+            parking_slots = airfield.dcs_airport.free_parking_slots(
+                self.flight.unit_type.dcs_unit_type
+            )
+        parking_slots = self._sort_nearest_departure_end(airfield, parking_slots)
         return self.mission.flight_group_from_airport(
             country=self.country,
             name=name,
@@ -499,6 +508,9 @@ class FlightGroupSpawner:
         is_roadbase = False
         ground_spawn: Optional[Tuple[StaticGroup, Point]] = None
 
+        if isinstance(cp, Airfield):
+            self._order_ground_spawns_by_departure_end(cp)
+
         if not is_large and len(self.ground_spawns_roadbase[cp]) > 0:
             ground_spawn = self.ground_spawns_roadbase[cp].pop()
             is_roadbase = True
@@ -587,6 +599,44 @@ class FlightGroupSpawner:
                     f"Not enough STOL slots available at {cp}"
                 ) from ex
         return group
+
+    def _departure_end(self, airfield: Airfield) -> Point:
+        game = self.flight.coalition.game
+        runway = airfield.active_runway(game.theater, game.conditions, {})
+        return airfield.position.point_from_heading(
+            runway.runway_heading.opposite.degrees, DEPARTURE_END_OFFSET.meters
+        )
+
+    def _sort_nearest_departure_end(
+        self, airfield: Airfield, slots: List[ParkingSlot]
+    ) -> List[ParkingSlot]:
+        """Orders parking slots so the ones closest to the active runway come first.
+
+        Large slots are still used last so that small aircraft don't take the spots
+        that large aircraft need.
+        """
+        departure_end = self._departure_end(airfield)
+        return sorted(
+            slots,
+            key=lambda s: (
+                s.helicopter,
+                s.large,
+                s.position.distance_to_point(departure_end),
+            ),
+        )
+
+    def _order_ground_spawns_by_departure_end(self, airfield: Airfield) -> None:
+        """Orders the airfield's ground spawns so the nearest one is popped first."""
+        departure_end = self._departure_end(airfield)
+        for spawns in (
+            self.ground_spawns_roadbase[airfield],
+            self.ground_spawns[airfield],
+            self.ground_spawns_large[airfield],
+        ):
+            spawns.sort(
+                key=lambda s: s[0].position.distance_to_point(departure_end),
+                reverse=True,
+            )
 
     def _remove_invisible_farps_if_requested(
         self,
