@@ -90,6 +90,7 @@ class FlightGroupConfigurator:
         self.setup_props()
         self.setup_payloads()
         self.setup_fuel()
+        self.setup_countermeasures()
 
         laser_codes: list[Optional[int]] = []
         for unit, member in zip(self.group.units, self.flight.iter_members()):
@@ -463,6 +464,13 @@ class FlightGroupConfigurator:
         merged = {**defaults, **(base or {})}
         merged["laser_code"] = laser_code.code
         return merged
+
+    def setup_countermeasures(self) -> None:
+        for unit in self.group.units:
+            if self.flight.chaff is not None:
+                unit.chaff = self.flight.chaff
+            if self.flight.flare is not None:
+                unit.flare = self.flight.flare
 
     def setup_fuel(self) -> None:
         fuel = self.flight.state.estimate_fuel()

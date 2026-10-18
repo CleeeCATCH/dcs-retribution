@@ -92,6 +92,10 @@ class Flight(
             self.tcn_name = callsign_tcn
 
         self.initialize_fuel()
+        # Countermeasure counts for every member of the flight. None leaves the DCS
+        # default for the aircraft type.
+        self.chaff: Optional[int] = None
+        self.flare: Optional[int] = None
         self.use_same_loadout_for_all_members = True
         self.use_same_livery_for_all_members = True
 
@@ -175,6 +179,8 @@ class Flight(
             state["use_same_loadout_for_all_members"] = True
         if "use_conformal_tanks" not in state:
             state["use_conformal_tanks"] = False
+        state.setdefault("chaff", None)
+        state.setdefault("flare", None)
         self.__dict__.update(state)
         if isinstance(self.roster, FlightRoster):
             self.roster = FlightMembers.from_roster(self, self.roster)
@@ -242,7 +248,8 @@ class Flight(
         member is given the new type's default loadout (custom loadouts included,
         since their pylons may not exist on the other type) and fuel is reset to the
         new type's full internal load. Liveries are cleared too: each unit type
-        has its own livery folder in DCS.
+        has its own livery folder in DCS, and so are countermeasure counts, since
+        the dispenser capacity can differ.
         """
         if enabled == self.use_conformal_tanks:
             return
@@ -254,6 +261,8 @@ class Flight(
         if self.use_same_loadout_for_all_members:
             self.roster.use_same_loadout_for_all_members()
         self.initialize_fuel()
+        self.chaff = None
+        self.flare = None
 
     @property
     def is_lha(self) -> bool:

@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QSlider,
     QCheckBox,
     QScrollArea,
+    QPushButton,
 )
 
 from game import Game
@@ -111,6 +112,102 @@ class DcsFuelSelector(QHBoxLayout):
 
     def lbs2kg(self, value: int) -> int:
         return round(value * self.LBS2KGS_FACTOR)
+
+
+class DcsCountermeasuresSelector(QHBoxLayout):
+    """Sets the flight's chaff and flare counts.
+
+    Most aircraft share one dispenser capacity between chaff and flares, so raising
+    one count lowers the most the other can be set to.
+    """
+
+    def __init__(self, flight: Flight) -> None:
+        super().__init__()
+        self.flight = flight
+        dcs_type = flight.unit_type.dcs_unit_type
+
+        self.addWidget(QLabel("Chaff: "))
+        self.chaff = QSpinBox()
+        self.addWidget(self.chaff)
+        self.addWidget(QLabel("Flares: "))
+        self.flare = QSpinBox()
+        self.addWidget(self.flare)
+        self.capacity = QLabel()
+        self.addWidget(self.capacity)
+        self.addStretch()
+
+        reset = QPushButton("Default")
+        reset.setToolTip(
+            f"Use the DCS default of {dcs_type.chaff} chaff and {dcs_type.flare} "
+            "flares."
+        )
+        reset.clicked.connect(self.reset_to_default)
+        self.addWidget(reset)
+
+        self.chaff.setValue(0)
+        self.flare.setValue(0)
+        self._set_values(
+            dcs_type.chaff if flight.chaff is None else flight.chaff,
+            dcs_type.flare if flight.flare is None else flight.flare,
+        )
+        self.chaff.valueChanged.connect(self.on_chaff_change)
+        self.flare.valueChanged.connect(self.on_flare_change)
+
+    @property
+    def _charge_total(self) -> int:
+        return self.flight.unit_type.dcs_unit_type.charge_total
+
+    def _max_chaff(self, flare: int) -> int:
+        dcs_type = self.flight.unit_type.dcs_unit_type
+        if self._charge_total <= 0:
+            return max(dcs_type.chaff, 999)
+        free = self._charge_total - flare * dcs_type.flare_charge_size
+        return max(0, free // dcs_type.chaff_charge_size)
+
+    def _max_flare(self, chaff: int) -> int:
+        dcs_type = self.flight.unit_type.dcs_unit_type
+        if self._charge_total <= 0:
+            return max(dcs_type.flare, 999)
+        free = self._charge_total - chaff * dcs_type.chaff_charge_size
+        return max(0, free // dcs_type.flare_charge_size)
+
+    def _set_values(self, chaff: int, flare: int) -> None:
+        self.chaff.blockSignals(True)
+        self.flare.blockSignals(True)
+        self.chaff.setMaximum(self._max_chaff(0))
+        self.flare.setMaximum(self._max_flare(0))
+        self.chaff.setValue(chaff)
+        self.flare.setValue(flare)
+        self._update_limits()
+        self.chaff.blockSignals(False)
+        self.flare.blockSignals(False)
+
+    def _update_limits(self) -> None:
+        self.chaff.setMaximum(self._max_chaff(self.flare.value()))
+        self.flare.setMaximum(self._max_flare(self.chaff.value()))
+        if self._charge_total > 0:
+            dcs_type = self.flight.unit_type.dcs_unit_type
+            used = (
+                self.chaff.value() * dcs_type.chaff_charge_size
+                + self.flare.value() * dcs_type.flare_charge_size
+            )
+            self.capacity.setText(f"({used}/{self._charge_total} dispenser slots)")
+
+    def on_chaff_change(self, value: int) -> None:
+        self.flight.chaff = value
+        self.flight.flare = self.flare.value()
+        self._update_limits()
+
+    def on_flare_change(self, value: int) -> None:
+        self.flight.flare = value
+        self.flight.chaff = self.chaff.value()
+        self._update_limits()
+
+    def reset_to_default(self) -> None:
+        dcs_type = self.flight.unit_type.dcs_unit_type
+        self._set_values(dcs_type.chaff, dcs_type.flare)
+        self.flight.chaff = None
+        self.flight.flare = None
 
 
 class ConformalTanksCheckBox(QCheckBox):
@@ -238,6 +335,11 @@ class QFlightPayloadTab(QFrame):
 
         self.fuel_selector = DcsFuelSelector(flight)
         layout.addLayout(self.fuel_selector)
+
+        dcs_type = flight.unit_type.dcs_unit_type
+        if dcs_type.charge_total > 0 or dcs_type.chaff > 0 or dcs_type.flare > 0:
+            self.countermeasures_selector = DcsCountermeasuresSelector(flight)
+            layout.addLayout(self.countermeasures_selector)
 
         self.loadout_selector = DcsLoadoutSelector(
             flight, self.member_selector.selected_member
