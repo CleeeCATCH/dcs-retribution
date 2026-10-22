@@ -161,6 +161,9 @@ class DcsCountermeasuresSelector(QHBoxLayout):
         dcs_type = self.flight.unit_type.dcs_unit_type
         if self._charge_total <= 0:
             return max(dcs_type.chaff, 999)
+        if dcs_type.chaff_charge_size <= 0:
+            # The dispensers can't hold this countermeasure (e.g. flare-only helos).
+            return 0
         free = self._charge_total - flare * dcs_type.flare_charge_size
         return max(0, free // dcs_type.chaff_charge_size)
 
@@ -168,6 +171,9 @@ class DcsCountermeasuresSelector(QHBoxLayout):
         dcs_type = self.flight.unit_type.dcs_unit_type
         if self._charge_total <= 0:
             return max(dcs_type.flare, 999)
+        if dcs_type.flare_charge_size <= 0:
+            # The dispensers can't hold this countermeasure (e.g. flare-only helos).
+            return 0
         free = self._charge_total - chaff * dcs_type.chaff_charge_size
         return max(0, free // dcs_type.flare_charge_size)
 
