@@ -210,6 +210,8 @@ def _nearest_host(
     origin: ControlPoint, bases: list[ControlPoint]
 ) -> Optional[ControlPoint]:
     hosts = [cp for cp in bases if _can_host(cp, origin)]
+    if not hosts:
+        return None
     # Prefer the same kind of base, then the nearest.
     return min(
         hosts,
@@ -217,7 +219,6 @@ def _nearest_host(
             cp.cptype != origin.cptype,
             cp.position.distance_to_point(origin.position),
         ),
-        default=None,
     )
 
 
