@@ -349,6 +349,7 @@ class LuaGenerator:
             )
 
         self.generate_dynamic_activation_data(lua_data)
+        self.generate_front_line_director_data(lua_data)
 
         trigger = TriggerStart(comment="Set DCS Retribution data")
         trigger.add_action(DoScript(String(lua_data.create_operations_lua())))
@@ -388,6 +389,61 @@ class LuaGenerator:
             # pydcs x/y are DCS vec3 x/z.
             group_item.add_key_value("x", str(group.x))
             group_item.add_key_value("z", str(group.y))
+
+    def generate_front_line_director_data(self, lua_data: LuaData) -> None:
+        """Sector plans for the frontlinedirector plugin.
+
+        Sector indexes are 1-based on the Lua side. pydcs x/y are DCS vec3 x/z.
+        """
+        if not self.mission_data.front_line_director:
+            return
+        director = lua_data.add_item("FrontLineDirector")
+        director.add_item("movingUnits").set_value(
+            "true" if self.game.settings.perf_moving_units else "false"
+        )
+        director.add_item("artilleryStrikes").set_value(
+            "true" if self.game.settings.perf_artillery else "false"
+        )
+        # Player-called artillery plugins keep control of the blue batteries.
+        player_artillery = any(
+            self.game.settings.plugins.get(plugin) for plugin in ("arty", "artymbot")
+        )
+        director.add_item("playerArtillery").set_value(
+            "true" if player_artillery else "false"
+        )
+        front_lines = director.add_item("frontLines")
+        for info in self.mission_data.front_line_director:
+            front_line = front_lines.add_item()
+            # Tables with nested items only serialize their items.
+            front_line.add_item("name").set_value(info.name)
+            sectors = front_line.add_item("sectors")
+            for sector in info.sectors:
+                sector_item = sectors.add_item()
+                sector_item.add_key_value("x", str(sector.x))
+                sector_item.add_key_value("z", str(sector.y))
+                sector_item.add_key_value("width", str(sector.width))
+            sides = front_line.add_item("sides")
+            for side_name, side in (("blue", info.blue), ("red", info.red)):
+                side_item = sides.add_item(side_name)
+                side_item.add_key_value("stance", side.stance)
+                if side.main_effort is not None:
+                    side_item.add_key_value("mainEffort", str(side.main_effort + 1))
+                side_item.add_key_value("forwardHeading", str(side.forward_heading))
+                side_item.add_key_value("enemyBaseX", str(side.enemy_base_x))
+                side_item.add_key_value("enemyBaseZ", str(side.enemy_base_y))
+            groups = front_line.add_item("groups")
+            for group in info.groups:
+                group_item = groups.add_item()
+                group_item.add_key_value("name", group.group_name)
+                group_item.add_key_value("side", group.side)
+                group_item.add_key_value("role", group.role)
+                if group.sector is not None:
+                    group_item.add_key_value("sector", str(group.sector + 1))
+                group_item.add_key_value(
+                    "reserve", "true" if group.reserve else "false"
+                )
+                if group.weapon_range:
+                    group_item.add_key_value("range", str(group.weapon_range))
 
     def inject_lua_trigger(self, contents: str, comment: str) -> None:
         trigger = TriggerStart(comment=comment)

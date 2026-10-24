@@ -1,0 +1,39 @@
+{
+    "nameInUI": "Front line director",
+    "descriptionInUI": "Plans front lines in sectors with objectives and runs them live during the mission: terrain-aware battle positions, reserve task forces that counter-attack, broken units falling back to cover, breakthroughs exploited toward the enemy base, ambushes, and smarter front line artillery (fires only on spotted enemies, prioritizes air defence and counter-battery, shoots and scoots). Adds a 'Front line status' radio menu.",
+    "defaultValue": true,
+    "specificOptions": [
+        {
+            "nameInUI": "Show sector objectives on the F10 map",
+            "mnemonic": "showMarks",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "Announce front line events",
+            "mnemonic": "messages",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "Front line status radio menu",
+            "mnemonic": "statusMenu",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "Debug logging",
+            "mnemonic": "debug",
+            "defaultValue": false
+        }
+    ],
+    "scriptsWorkOrders": [
+        {
+            "file": "frontline_director.lua",
+            "mnemonic": "frontlinedirector"
+        }
+    ],
+    "configurationWorkOrders": [
+        {
+            "file": "frontline-director-config.lua",
+            "mnemonic": "frontlinedirector-config"
+        }
+    ]
+}

@@ -112,6 +112,44 @@ class FrontlineUnitGroupsInfo:
 
 
 @dataclass
+class FrontLineSectorInfo:
+    # pydcs x/y, which are DCS vec3 x/z.
+    x: float
+    y: float
+    width: int
+
+
+@dataclass
+class FrontLineSideInfo:
+    stance: str
+    main_effort: Optional[int]
+    forward_heading: int
+    # The enemy base exploitation task forces drive to.
+    enemy_base_x: float
+    enemy_base_y: float
+
+
+@dataclass
+class FrontLineGroupInfo:
+    group_name: str
+    side: str
+    role: str
+    sector: Optional[int]
+    reserve: bool
+    # Maximum weapon range in meters, used for artillery fire missions.
+    weapon_range: int = 0
+
+
+@dataclass
+class FrontLineDirectorInfo:
+    name: str
+    sectors: list[FrontLineSectorInfo]
+    blue: FrontLineSideInfo
+    red: FrontLineSideInfo
+    groups: list[FrontLineGroupInfo]
+
+
+@dataclass
 class MissionData:
     awacs: list[AwacsInfo] = field(default_factory=list)
     runways: list[RunwayData] = field(default_factory=list)
@@ -125,3 +163,4 @@ class MissionData:
     cp_stack: dict[UUID, Distance] = field(default_factory=dict)
     player_frontline_groups: list[FrontlineUnitGroupsInfo] = field(default_factory=list)
     enemy_frontline_groups: list[FrontlineUnitGroupsInfo] = field(default_factory=list)
+    front_line_director: list[FrontLineDirectorInfo] = field(default_factory=list)

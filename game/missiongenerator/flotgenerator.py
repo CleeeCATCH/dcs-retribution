@@ -38,6 +38,14 @@ from game.ground_forces.ai_ground_planner import (
     DISTANCE_FROM_FRONTLINE,
 )
 from game.ground_forces.combat_stance import CombatStance
+from game.ground_forces.frontline_sectors import (
+    FrontLineSector,
+    GroupAssignment,
+    OFFENSIVE_STANCES,
+    SidePlan,
+    build_sectors,
+    plan_side,
+)
 from game.naming import namegen
 from game.radio.radios import RadioRegistry
 from game.theater.controlpoint import ControlPoint, Player
@@ -46,7 +54,15 @@ from game.utils import Heading
 from .aircraft.aircraftpainter import AircraftPainterJtac
 from .frontlineconflictdescription import FrontLineConflictDescription
 from .groundforcepainter import GroundForcePainter
-from .missiondata import JtacInfo, MissionData, FrontlineUnitGroupsInfo
+from .missiondata import (
+    FrontLineDirectorInfo,
+    FrontLineGroupInfo,
+    FrontLineSectorInfo,
+    FrontLineSideInfo,
+    JtacInfo,
+    MissionData,
+    FrontlineUnitGroupsInfo,
+)
 from ..ato import FlightType
 
 if TYPE_CHECKING:
@@ -68,6 +84,17 @@ FIGHT_DISTANCE = 3500
 RANDOM_OFFSET_ATTACK = 250
 
 INFANTRY_GROUP_SIZE = 5
+
+# Plugin running the in-mission front line director. When it is enabled the
+# front line is planned in sectors and the director takes over morale and
+# reserves, so the static morale triggers are not generated.
+FRONT_LINE_DIRECTOR_PLUGIN = "frontlinedirector"
+
+# Extra distance behind the front at which reserve task forces wait.
+RESERVE_DEPTH = 3000, 4500
+
+# ATGM teams stop short of the objective to overwatch the assault.
+ATGM_OVERWATCH_DISTANCE = 1500
 
 
 class FlotGenerator:
@@ -94,20 +121,14 @@ class FlotGenerator:
         self.unit_map = unit_map
         self.radio_registry = radio_registry
         self.mission_data = mission_data
+        self.director_enabled = bool(
+            game.settings.plugins.get(FRONT_LINE_DIRECTOR_PLUGIN)
+        )
+        self.sectors: list[FrontLineSector] = []
 
     def generate(self) -> None:
         position = FrontLineConflictDescription.frontline_position(
             self.conflict.front_line, self.game.theater, self.game.settings
-        )
-
-        # Create player groups at random position
-        player_groups = self._generate_groups(
-            self.player_planned_combat_groups, is_player=Player.BLUE
-        )
-
-        # Create enemy groups at random position
-        enemy_groups = self._generate_groups(
-            self.enemy_planned_combat_groups, is_player=Player.RED
         )
 
         # TODO: Differentiate AirConflict and GroundConflict classes.
@@ -116,6 +137,34 @@ class FlotGenerator:
                 "Cannot generate ground units for non-ground conflict. Ground unit "
                 "conflicts cannot have the heading `None`."
             )
+
+        player_plan: Optional[SidePlan] = None
+        enemy_plan: Optional[SidePlan] = None
+        if self.director_enabled and self.conflict.size:
+            self.sectors = build_sectors(self.conflict.size)
+            rng = random.Random()
+            player_plan = plan_side(
+                self.player_planned_combat_groups,
+                self.player_stance,
+                len(self.sectors),
+                rng,
+            )
+            enemy_plan = plan_side(
+                self.enemy_planned_combat_groups,
+                self.enemy_stance,
+                len(self.sectors),
+                rng,
+            )
+
+        # Create player groups, in their sectors if planned
+        player_groups = self._generate_groups(
+            self.player_planned_combat_groups, is_player=Player.BLUE, plan=player_plan
+        )
+
+        # Create enemy groups, in their sectors if planned
+        enemy_groups = self._generate_groups(
+            self.enemy_planned_combat_groups, is_player=Player.RED, plan=enemy_plan
+        )
 
         self.wpt_pointaction = (
             PointAction.OnRoad
@@ -131,6 +180,7 @@ class FlotGenerator:
             self.conflict.heading.right,
             self.conflict.blue_cp,
             self.conflict.red_cp,
+            player_plan,
         )
         self.plan_action_for_groups(
             self.enemy_stance,
@@ -139,7 +189,13 @@ class FlotGenerator:
             self.conflict.heading.left,
             self.conflict.red_cp,
             self.conflict.blue_cp,
+            enemy_plan,
         )
+
+        if player_plan is not None and enemy_plan is not None:
+            self._record_director_plan(
+                player_plan, enemy_plan, player_groups, enemy_groups
+            )
 
         # Add JTAC
         if self.game.blue.faction.has_jtac:
@@ -408,16 +464,25 @@ class FlotGenerator:
         dcs_group: VehicleGroup,
         forward_heading: Heading,
         to_cp: ControlPoint,
+        objective: Optional[Point] = None,
     ) -> bool:
         """
         Handles adding the DCS tasks for tank and IFV groups for all combat stances.
         Returns True if tasking was added, returns False if the stance was not a combat stance.
+
+        With a sector objective, offensive groups first take the objective. Aggressive
+        groups then hold it; the front line director decides when to push further.
         """
         duration = timedelta()
         if stance in [CombatStance.DEFENSIVE, CombatStance.AGGRESSIVE]:
             duration = self._earliest_tot_on_flot(to_cp.coalition.player.opponent)
         self._set_reform_waypoint(dcs_group, forward_heading, duration)
+        if objective is not None and stance in OFFENSIVE_STANCES:
+            dcs_group.add_waypoint(objective, self.wpt_pointaction)
         if stance == CombatStance.AGGRESSIVE:
+            if objective is not None:
+                self.add_morale_trigger(dcs_group, forward_heading)
+                return True
             # Attack nearest enemy if any
             # Then move forward OR Attack enemy base if it is not too far away
             target = self.find_nearest_enemy_group(dcs_group, enemy_groups)
@@ -429,8 +494,8 @@ class FlotGenerator:
                 target_point = self.conflict.theater.nearest_land_pos(
                     target.points[0].position + rand_offset
                 )
-                dcs_group.add_waypoint(target_point)
-                dcs_group.points[2].tasks.append(AttackGroup(target.id))
+                wpt = dcs_group.add_waypoint(target_point)
+                wpt.tasks.append(AttackGroup(target.id))
 
             if (
                 to_cp.position.distance_to_point(dcs_group.points[0].position)
@@ -468,7 +533,7 @@ class FlotGenerator:
         elif stance == CombatStance.ELIMINATION:
             # In elimination mode, the units focus on destroying as much enemy groups as possible
             targets = self.find_n_nearest_enemy_groups(dcs_group, enemy_groups, 3)
-            for i, target in enumerate(targets, start=1):
+            for target in targets:
                 rand_offset = Vector2(
                     random.randint(-RANDOM_OFFSET_ATTACK, RANDOM_OFFSET_ATTACK),
                     random.randint(-RANDOM_OFFSET_ATTACK, RANDOM_OFFSET_ATTACK),
@@ -476,8 +541,8 @@ class FlotGenerator:
                 target_point = self.conflict.theater.nearest_land_pos(
                     target.points[0].position + rand_offset
                 )
-                dcs_group.add_waypoint(target_point, self.wpt_pointaction)
-                dcs_group.points[i + 1].tasks.append(AttackGroup(target.id))
+                wpt = dcs_group.add_waypoint(target_point, self.wpt_pointaction)
+                wpt.tasks.append(AttackGroup(target.id))
             if (
                 to_cp.position.distance_to_point(dcs_group.points[0].position)
                 <= AGGRESIVE_MOVE_DISTANCE
@@ -498,6 +563,8 @@ class FlotGenerator:
         dcs_group: VehicleGroup,
         forward_heading: Heading,
         to_cp: ControlPoint,
+        role: CombatGroupRole,
+        objective: Optional[Point] = None,
     ) -> bool:
         """
         Handles adding the DCS tasks for APC and ATGM groups for all combat stances.
@@ -507,7 +574,16 @@ class FlotGenerator:
         if stance in [CombatStance.DEFENSIVE, CombatStance.AGGRESSIVE]:
             duration = self._earliest_tot_on_flot(to_cp.coalition.player.opponent)
         self._set_reform_waypoint(dcs_group, forward_heading, duration)
-        if stance in [
+        if objective is not None and stance in OFFENSIVE_STANCES:
+            # APCs follow the assault onto the objective, ATGM teams overwatch it.
+            if role == CombatGroupRole.ATGM:
+                objective = self.conflict.theater.nearest_land_pos(
+                    objective.point_from_heading(
+                        forward_heading.opposite.degrees, ATGM_OVERWATCH_DISTANCE
+                    )
+                )
+            dcs_group.add_waypoint(objective, self.wpt_pointaction)
+        elif stance in [
             CombatStance.AGGRESSIVE,
             CombatStance.BREAKTHROUGH,
             CombatStance.ELIMINATION,
@@ -539,12 +615,28 @@ class FlotGenerator:
         forward_heading: Heading,
         from_cp: ControlPoint,
         to_cp: ControlPoint,
+        plan: Optional[SidePlan] = None,
     ) -> None:
         if not self.game.settings.perf_moving_units:
             return
 
-        for dcs_group, group in ally_groups:
-            if group.role == CombatGroupRole.ARTILLERY:
+        for n, (dcs_group, group) in enumerate(ally_groups):
+            assignment = plan.assignments[n] if plan is not None else None
+            objective = self._sector_objective(assignment)
+            if assignment is not None and assignment.reserve:
+                # Reserve task forces wait until the director commits them.
+                self._set_reform_waypoint(dcs_group, forward_heading)
+                dcs_group.points[-1].tasks.append(Hold())
+                continue
+
+            if group.role == CombatGroupRole.ARTILLERY and self.director_enabled:
+                # The director runs spotted, prioritized fire missions and
+                # shoot-and-scoot instead of one blind salvo.
+                self._set_reform_waypoint(dcs_group, forward_heading)
+                dcs_group.points[-1].tasks.append(Hold())
+                for u in dcs_group.units:
+                    u.heading = (forward_heading + Heading.random(-5, 5)).degrees
+            elif group.role == CombatGroupRole.ARTILLERY:
                 if self.game.settings.perf_artillery:
                     target = self.get_artillery_target_in_range(
                         dcs_group, group, enemy_groups
@@ -556,11 +648,13 @@ class FlotGenerator:
 
             elif group.role in [CombatGroupRole.TANK, CombatGroupRole.IFV]:
                 self._plan_tank_ifv_action(
-                    stance, enemy_groups, dcs_group, forward_heading, to_cp
+                    stance, enemy_groups, dcs_group, forward_heading, to_cp, objective
                 )
 
             elif group.role in [CombatGroupRole.APC, CombatGroupRole.ATGM]:
-                self._plan_apc_atgm_action(stance, dcs_group, forward_heading, to_cp)
+                self._plan_apc_atgm_action(
+                    stance, dcs_group, forward_heading, to_cp, group.role, objective
+                )
 
             if stance == CombatStance.RETREAT:
                 # In retreat mode, the units will fall back
@@ -595,6 +689,10 @@ class FlotGenerator:
         for unit in dcs_group.units:
             unit.heading = forward_heading.degrees
         dcs_group.manualHeading = True
+
+        if self.director_enabled:
+            # The front line director withdraws broken groups to cover.
+            return
 
         # We add a new retreat waypoint
         dcs_group.add_waypoint(
@@ -745,13 +843,18 @@ class FlotGenerator:
         return rg
 
     def get_valid_position_for_group(
-        self, distance_from_frontline: int, spawn_heading: Heading
+        self,
+        distance_from_frontline: int,
+        spawn_heading: Heading,
+        lateral_offset: Optional[int] = None,
     ) -> Point:
         assert self.conflict.heading is not None
         assert self.conflict.size is not None
+        if lateral_offset is None:
+            lateral_offset = random.randint(0, self.conflict.size)
         shifted = self.conflict.position.point_from_heading(
             self.conflict.heading.degrees,
-            random.randint(0, self.conflict.size),
+            lateral_offset,
         )
         desired_point = shifted.point_from_heading(
             spawn_heading.degrees, distance_from_frontline
@@ -763,8 +866,99 @@ class FlotGenerator:
             self.conflict.theater,
         )
 
+    def _sector_center(self, sector: int) -> Point:
+        assert self.conflict.heading is not None
+        center = self.conflict.position.point_from_heading(
+            self.conflict.heading.degrees, self.sectors[sector].center_offset
+        )
+        return self.conflict.theater.nearest_land_pos(center)
+
+    def _sector_objective(
+        self, assignment: Optional[GroupAssignment]
+    ) -> Optional[Point]:
+        if assignment is None or assignment.sector is None:
+            return None
+        return self._sector_center(assignment.sector).random_point_within(
+            RANDOM_OFFSET_ATTACK
+        )
+
+    def _lateral_offset_for(
+        self, assignment: Optional[GroupAssignment]
+    ) -> Optional[int]:
+        if assignment is None or assignment.sector is None:
+            return None
+        sector = self.sectors[assignment.sector]
+        if assignment.reserve:
+            # Reserves bunch up behind the sector center as one task force.
+            spread = sector.width // 6
+        else:
+            spread = sector.width // 2
+        return sector.center_offset + random.randint(-spread, spread)
+
+    def _record_director_plan(
+        self,
+        player_plan: SidePlan,
+        enemy_plan: SidePlan,
+        player_groups: List[Tuple[VehicleGroup, CombatGroup]],
+        enemy_groups: List[Tuple[VehicleGroup, CombatGroup]],
+    ) -> None:
+        """Hands the sector plan to the in-mission front line director."""
+        assert self.conflict.heading is not None
+
+        def side_info(
+            plan: SidePlan, forward_heading: Heading, enemy_cp: ControlPoint
+        ) -> FrontLineSideInfo:
+            return FrontLineSideInfo(
+                stance=plan.stance.name,
+                main_effort=plan.main_effort,
+                forward_heading=forward_heading.degrees,
+                enemy_base_x=enemy_cp.position.x,
+                enemy_base_y=enemy_cp.position.y,
+            )
+
+        groups = []
+        for side, plan, positioned in (
+            ("blue", player_plan, player_groups),
+            ("red", enemy_plan, enemy_groups),
+        ):
+            for (dcs_group, group), assignment in zip(positioned, plan.assignments):
+                groups.append(
+                    FrontLineGroupInfo(
+                        group_name=dcs_group.name,
+                        side=side,
+                        role=group.role.name,
+                        sector=assignment.sector,
+                        reserve=assignment.reserve,
+                        weapon_range=int(
+                            getattr(group.unit_type.dcs_unit_type, "threat_range", 0)
+                        ),
+                    )
+                )
+
+        sectors = []
+        for sector in self.sectors:
+            center = self._sector_center(sector.index)
+            sectors.append(FrontLineSectorInfo(center.x, center.y, sector.width))
+
+        self.mission_data.front_line_director.append(
+            FrontLineDirectorInfo(
+                name=f"{self.conflict.blue_cp.name}/{self.conflict.red_cp.name}",
+                sectors=sectors,
+                blue=side_info(
+                    player_plan, self.conflict.heading.right, self.conflict.red_cp
+                ),
+                red=side_info(
+                    enemy_plan, self.conflict.heading.left, self.conflict.blue_cp
+                ),
+                groups=groups,
+            )
+        )
+
     def _generate_groups(
-        self, groups: list[CombatGroup], is_player: Player
+        self,
+        groups: list[CombatGroup],
+        is_player: Player,
+        plan: Optional[SidePlan] = None,
     ) -> List[Tuple[VehicleGroup, CombatGroup]]:
         """Finds valid positions for planned groups and generates a pydcs group for them"""
         positioned_groups = []
@@ -776,7 +970,8 @@ class FlotGenerator:
         )
         country = self.game.coalition_for(is_player).faction.country
         country = self.mission.country(country.name)
-        for group in groups:
+        for n, group in enumerate(groups):
+            assignment = plan.assignments[n] if plan is not None else None
             if group.role == CombatGroupRole.ARTILLERY:
                 distance_from_frontline = (
                     self.get_artilery_group_distance_from_frontline(group)
@@ -786,9 +981,13 @@ class FlotGenerator:
                     DISTANCE_FROM_FRONTLINE[group.role][0],
                     DISTANCE_FROM_FRONTLINE[group.role][1],
                 )
+            if assignment is not None and assignment.reserve:
+                distance_from_frontline += random.randint(*RESERVE_DEPTH)
 
             final_position = self.get_valid_position_for_group(
-                distance_from_frontline, spawn_heading
+                distance_from_frontline,
+                spawn_heading,
+                self._lateral_offset_for(assignment),
             )
 
             g = self._generate_group(

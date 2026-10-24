@@ -44,6 +44,7 @@ def _generated_lua(ground_objects: list[Any], frontline_groups: list[Any]) -> st
         ),
     )
     mission_data = SimpleNamespace(
+        front_line_director=[],
         runways=[],
         carriers=[],
         tankers=[],

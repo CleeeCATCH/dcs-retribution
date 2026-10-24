@@ -154,6 +154,7 @@ def _generated_lua(settings: Settings, *control_points: Any) -> str:
         iads_considerate_culling=lambda tgo: False,
     )
     mission_data = SimpleNamespace(
+        front_line_director=[],
         runways=[],
         carriers=[],
         tankers=[],
