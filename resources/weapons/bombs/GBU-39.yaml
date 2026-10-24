@@ -5,3 +5,7 @@ clsids:
   - "{GBU-39}"   # GBU-39
   - "{CH_GBU39}"   # GBU-39 SDB 285 lb Guided Glide-Bomb
   - "{JAS39_SDB}"   # 4 x GBU-39 SDB 285 lb TV Guided Glide-Bomb
+  - "{F16V_BRU61_1*GBU39}"   # F-16V mod (Pobit): BRU-61/A with 1 x GBU-39/B SDB
+  - "{F16V_BRU61_2*GBU39}"   # F-16V mod (Pobit): BRU-61/A with 2 x GBU-39/B SDB
+  - "{F16V_BRU61_3*GBU39}"   # F-16V mod (Pobit): BRU-61/A with 3 x GBU-39/B SDB
+  - "{F16V_BRU61_4*GBU39}"   # F-16V mod (Pobit): BRU-61/A with 4 x GBU-39/B SDB

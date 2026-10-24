@@ -36,6 +36,7 @@ from game.dcs.unittype import UnitType
 from game.modsupport import retribution_id
 from pydcs_extensions import inject_F15I, eject_F15I, eject_F4E, inject_F4E
 from pydcs_extensions.f16i_idf.f16i_idf import inject_F16I, eject_F16I
+from pydcs_extensions.f16v_pobit.f16v_pobit import inject_F16V, eject_F16V
 
 if TYPE_CHECKING:
     from game.theater.start_generator import ModSettings
@@ -472,6 +473,12 @@ class Faction:
             eject_F16I()
         else:
             inject_F16I()
+        # F-16V mod by Pobit. Must come after the F-16I, whose eject_F16I() resets
+        # the F-16C_50's pylon set and removes its stations 13 and 14.
+        if not mod_settings.f16v_pobit:
+            eject_F16V()
+        else:
+            inject_F16V()
         # F-4E expanded weapons mod
         if not mod_settings.f4e_expanded_weapons:
             eject_F4E()

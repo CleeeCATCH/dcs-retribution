@@ -96,6 +96,7 @@ class NewGameWizard(QtWidgets.QWizard):
             f15d_baz=self.field("f15d_baz"),
             f_15_idf=self.field("f_15_idf"),
             f_16_idf=self.field("f_16_idf"),
+            f16v_pobit=self.field("f16v_pobit"),
             fa_18efg=self.field("fa_18efg"),
             fa18ef_tanker=self.field("fa18ef_tanker"),
             f4e_expanded_weapons=self.field("f4e_expanded_weapons"),

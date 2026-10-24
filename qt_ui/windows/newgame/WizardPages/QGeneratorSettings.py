@@ -118,6 +118,8 @@ class GeneratorOptions(QtWidgets.QWizardPage):
         self.registerField("f_15_idf", self.f_15_idf)
         self.f_16_idf = QtWidgets.QCheckBox()
         self.registerField("f_16_idf", self.f_16_idf)
+        self.f16v_pobit = QtWidgets.QCheckBox()
+        self.registerField("f16v_pobit", self.f16v_pobit)
         self.fa_18efg = QtWidgets.QCheckBox()
         self.registerField("fa_18efg", self.fa_18efg)
         self.fa18ef_tanker = QtWidgets.QCheckBox()
@@ -241,6 +243,7 @@ class GeneratorOptions(QtWidgets.QWizardPage):
             ("F-15EX Eagle II / F-15IA (V3 by Spino, EFM)", self.f15ex),
             ("F-15I Ra'am (v1.0 by IDF Mods Project)", self.f_15_idf),
             ("F-16I Sufa & F-16D (v3.6 by IDF Mods Project)", self.f_16_idf),
+            ("F-16V (by Pobit, F-16C bl.50 SDB/CFT/AAQ-13 stores)", self.f16v_pobit),
             ("F-22A Raptor (v2.0.0 released May 2025)", self.f22_raptor),
             ("F-22A Raptor Enhancement Mod (BHOOP EFM + NIGHTSTORM)", self.f22_efm),
             ("F-35A/B/C Lightning II (v2.9.2.103 FC3 EFM)", self.vsnf35),
@@ -324,6 +327,7 @@ class GeneratorOptions(QtWidgets.QWizardPage):
         self.f15d_baz.setChecked(s.get("f15d_baz", False))
         self.f_15_idf.setChecked(s.get("f_15_idf", False))
         self.f_16_idf.setChecked(s.get("f_16_idf", False))
+        self.f16v_pobit.setChecked(s.get("f16v_pobit", False))
         self.fa_18efg.setChecked(s.get("fa_18efg", False))
         self.f22_raptor.setChecked(s.get("f22_raptor", False))
         self.f22_efm.setChecked(s.get("f22_efm", False))

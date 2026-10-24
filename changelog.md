@@ -16,6 +16,7 @@
 * **[Modding]** Add CurrentHill UK Assets Pack support (v1.1.2)
 * **[Layouts]** Add signature to layouts' binary file for automatic reloading of updated layouts.
 * **[Modding]** Add support for Su-35S mod (v2.0.27b)
+* **[Modding]** Add support for the F-16V mod by Pobit, which installs into the core game and adds stores to the F-16C bl.50: BRU-61/A racks of one to four GBU-39/B SDB or GBU-53/B SDB II on stations 3 and 7, the AN/AAQ-13 navigation pod on station 5L, and the conformal fuel tanks (CFT) and AUX stations. Enable it from the mod options when creating a new game
 * **[Modding]** Add support for the F-15EX Eagle II mod (V3 by Spino, with EFM), as a single F-15EX whose flights can fit conformal fuel tanks from their payload settings, plus the mod's F-15IA. V3 carries air-to-air stores only, so both are planned for air-to-air missions only
 * **[Plugins]** Update EW Script to version 2.1
 * **[Options]** New option to spawn TACAN beacons at captured airfields

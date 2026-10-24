@@ -85,6 +85,7 @@ class ModSettings:
     f15ex: bool = False
     f_15_idf: bool = False
     f_16_idf: bool = False
+    f16v_pobit: bool = False
     fa_18efg: bool = False
     fa18ef_tanker: bool = False
     f22_raptor: bool = False

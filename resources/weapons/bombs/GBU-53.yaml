@@ -1,0 +1,9 @@
+# GBU-53/B StormBreaker (SDB II), reached IOC on the F-15E in 2023.
+name: GBU-53/B SDB II
+year: 2023
+fallback: GBU-39 SDB
+clsids:
+  - "{F16V_BRU61_1*GBU53}"   # F-16V mod (Pobit): BRU-61/A with 1 x GBU-53/B SDB II
+  - "{F16V_BRU61_2*GBU53}"   # F-16V mod (Pobit): BRU-61/A with 2 x GBU-53/B SDB II
+  - "{F16V_BRU61_3*GBU53}"   # F-16V mod (Pobit): BRU-61/A with 3 x GBU-53/B SDB II
+  - "{F16V_BRU61_4*GBU53}"   # F-16V mod (Pobit): BRU-61/A with 4 x GBU-53/B SDB II
