@@ -13,6 +13,7 @@ from game import Game
 from game.missiongenerator.luagenerator import LuaData, LuaGenerator
 from game.missiongenerator.missiondata import (
     FrontLineDirectorInfo,
+    FrontLineEventInfo,
     FrontLineGroupInfo,
     FrontLineSectorInfo,
     FrontLineSideInfo,
@@ -29,6 +30,8 @@ MOCK_DCS = """
 HILL = {x = 1000, z = 0}
 SURF = {LAND = 1, ROAD = 2, WATER = 3}
 messages = {}
+taskMarks = {}
+effects = {}
 scheduled = {}
 marks = {}
 mockGroups = {}
@@ -62,7 +65,19 @@ trigger = {action = {
     textToAll = function(c, id) marks[id] = true end,
     setMarkupColor = function() end,
     setMarkupColorFill = function() end,
+    markToCoalition = function(id, text, pos, side) taskMarks[id] = {text = text, x = pos.x, z = pos.z, side = side} end,
+    removeMark = function(id) taskMarks[id] = nil end,
+    effectSmokeBig = function(pos, preset, density, name)
+        effects[name] = {x = pos.x, z = pos.z, preset = preset, density = density}
+    end,
+    effectSmokeStop = function(name) effects[name] = nil end,
 }}
+coord = {
+    LOtoLL = function(p) return p.x / 1000, p.z / 1000, 0 end,
+    LLtoMGRS = function(lat, lon) return {lat = lat, lon = lon} end,
+}
+mist = {tostringMGRS = function(m, acc) return string.format("GRID %.1f %.1f", m.lat, m.lon) end}
+Unit = {Category = {GROUND_UNIT = 2, AIRPLANE = 0}}
 missionCommands = {addCommandForCoalition = function() end}
 timer = {
     getTime = function() return 0 end,
@@ -82,6 +97,7 @@ Group = {getByName = function(name)
     if not g then return nil end
     return {
         isExist = function() return true end,
+        activate = function() g.active = true end,
         getUnits = function()
             local units = {}
             for _, u in ipairs(g.units) do table.insert(units, makeUnit(u)) end
@@ -108,6 +124,21 @@ function addPlayer(side, x, alt, z)
         inAir = function() return true end,
         getPoint = function() return {x = x, y = alt, z = z} end,
     })
+end
+
+function deadUnit(x, z, armored, category)
+    return {
+        getDesc = function() return {category = category or Unit.Category.GROUND_UNIT} end,
+        hasAttribute = function(_, attribute) return armored and attribute == "Armored vehicles" end,
+        getName = function() return string.format("wreck %d %d", x, z) end,
+        getPoint = function() return {x = x, y = 0, z = z} end,
+    }
+end
+
+function effectCount()
+    local n = 0
+    for _ in pairs(effects) do n = n + 1 end
+    return n
 end
 
 function moveTo(name, x, z)
@@ -497,3 +528,271 @@ def test_externally_fired_battery_is_located(arty: Any) -> None:
     bx, bz = arty.eval("FLD.groupPosition('blue-arty')")
     arty.execute("FLD.runArtillery(FLD.frontLines[1], 'red', 60)")
     assert arty.eval("fireTarget('red-arty')") == pytest.approx((bx, bz))
+
+
+EVENTS = """
+function setupEvents(events, extraGroups)
+    spawn("blue-tank", -3000, 0, 4)
+    spawn("blue-reserve", -6000, 0, 4)
+    spawn("red-tank", 3000, 0, 4)
+    spawn("red-reserve", 6000, 0, 4)
+    local data = plan('AGGRESSIVE', 'DEFENSIVE', extraGroups)
+    data.frontLines[1].events = events
+    FLD.start(data)
+end
+
+function taskFor(side, fragment)
+    for _, task in ipairs(FLD.tasks[side]) do
+        if string.find(task.title, fragment, 1, true) then return task end
+    end
+end
+"""
+
+
+@pytest.fixture
+def events(arty: Any) -> Any:
+    arty.execute(EVENTS)
+    return arty
+
+
+def test_flanking_raid_goes_for_the_enemy_guns(events: Any) -> None:
+    events.execute("""
+        spawn("blue-raid", -6000, 9000, 3)
+        spawn("red-arty", 15000, 0, 4)
+        setupEvents({{kind = "FLANK", side = "blue", destinationX = "0", destinationZ = "0",
+                      groups = {{name = "blue-raid", role = "TANK"}}}},
+                    {{name = "red-arty", side = "red", role = "ARTILLERY", reserve = "false", range = "30000"}})
+        FLD.frontLines[1].events[1].fireAt = 100
+        FLD.tickFront(FLD.frontLines[1], 50)
+    """)
+    # Not before its time, and inactive until then.
+    assert events.eval("mockGroups['blue-raid'].active") is None
+    assert events.eval("groupState('blue-raid')") is None
+
+    events.execute("FLD.tickFront(FLD.frontLines[1], 120)")
+    assert events.eval("mockGroups['blue-raid'].active") is True
+    assert events.eval("groupState('blue-raid')") == "RAIDING"
+    assert events.eval("lastDestination('blue-raid')") == pytest.approx((15000, 10))
+    assert events.eval("said('flanking raid launched toward the enemy artillery')")
+    # Red gets an urgent intercept tasking with a moving map mark.
+    task = events.eval("taskFor('red', 'Enemy armor is flanking toward our artillery')")
+    assert task is not None and task.kind == "DESTROY"
+    assert events.eval(f"taskMarks[{task.markId}].side") == 1
+
+    events.execute("kill('blue-raid', 3)")
+    events.execute("FLD.updateTasks(150)")
+    assert events.eval("taskFor('red', 'Enemy armor is flanking').status") == "COMPLETE"
+    assert events.eval("said('TASKING COMPLETE')")
+
+
+def test_reinforcement_column_joins_the_reserve(events: Any) -> None:
+    events.execute("""
+        spawn("red-column-1", 20000, 0, 4)
+        spawn("red-column-2", 20300, 0, 4)
+        setupEvents({{kind = "COLUMN", side = "red", destinationX = "8000", destinationZ = "0",
+                      groups = {{name = "red-column-1", role = "TANK"}, {name = "red-column-2", role = "IFV"}}}})
+        FLD.frontLines[1].events[1].fireAt = 10
+        FLD.tickFront(FLD.frontLines[1], 30)
+    """)
+    assert events.eval("groupState('red-column-1')") == "ARRIVING"
+    assert (
+        events.eval("lastTask('red-column-1').params.route.points[2].action")
+        == "On Road"
+    )
+    interdict = events.eval("taskFor('blue', 'reinforcement column on the road')")
+    escort = events.eval("taskFor('red', 'keep it safe')")
+    assert interdict is not None and escort is not None
+
+    events.execute("""
+        moveTo('red-column-1', 8100, 0)
+        moveTo('red-column-2', 8200, 0)
+        FLD.tickFront(FLD.frontLines[1], 60)
+        FLD.updateTasks(60)
+    """)
+    assert events.eval("groupState('red-column-1')") == "RESERVE"
+    assert events.eval("said('joins the reserve')")
+    assert (
+        events.eval("taskFor('blue', 'reinforcement column on the road').status")
+        == "FAILED"
+    )
+    assert events.eval("taskFor('red', 'keep it safe').status") == "COMPLETE"
+    # The new reserve can be committed like any other.
+    assert "Reserve task force groups available: 3" in events.eval(
+        "FLD.statusText('red')"
+    )
+
+
+def test_interdicted_column_completes_the_tasking(events: Any) -> None:
+    events.execute("""
+        spawn("red-column-1", 20000, 0, 4)
+        setupEvents({{kind = "COLUMN", side = "red", destinationX = "8000", destinationZ = "0",
+                      groups = {{name = "red-column-1", role = "TANK"}}}})
+        FLD.frontLines[1].events[1].fireAt = 10
+        FLD.tickFront(FLD.frontLines[1], 30)
+        kill('red-column-1', 4)
+        FLD.tickFront(FLD.frontLines[1], 60)
+        FLD.updateTasks(60)
+    """)
+    assert events.eval("taskFor('blue', 'reinforcement column').status") == "COMPLETE"
+    assert events.eval("taskFor('red', 'keep it safe').status") == "FAILED"
+
+
+def test_events_respect_options_and_static_units(events: Any) -> None:
+    events.execute("""
+        spawn("blue-raid", -6000, 9000, 3)
+        FLD.config.popupEvents = false
+        setupEvents({{kind = "FLANK", side = "blue", destinationX = "0", destinationZ = "0",
+                      groups = {{name = "blue-raid", role = "TANK"}}}})
+        FLD.frontLines[1].events[1].fireAt = 10
+        FLD.tickFront(FLD.frontLines[1], 30)
+    """)
+    assert events.eval("mockGroups['blue-raid'].active") is None
+    assert events.eval("#FLD.tasks.red") == 0
+
+
+def test_troops_in_contact_tasking(events: Any) -> None:
+    events.execute("""
+        setupEvents({})
+        moveTo('blue-tank', 1000, 0)
+        FLD.tickFront(FLD.frontLines[1], 30)
+        kill('blue-tank', 2)
+        moveTo('red-tank', 1100, 0)
+        FLD.tickFront(FLD.frontLines[1], 60)
+    """)
+    task = events.eval("taskFor('blue', 'Troops in contact at OBJ ALPHA')")
+    assert task is not None and task.kind == "DEFEND"
+    assert events.eval("said('POP-UP TASKING')")
+    assert "Troops in contact" in events.eval("FLD.tasksText('blue')")
+
+    # The red tank is driven off: the objective holds.
+    events.execute("kill('red-tank', 4)")
+    events.execute("FLD.tickFront(FLD.frontLines[1], 90)")
+    events.execute("FLD.updateTasks(90)")
+    assert events.eval("taskFor('blue', 'Troops in contact').status") == "COMPLETE"
+    assert events.eval(f"taskMarks[{task.id}]") is None
+
+
+def test_battlefield_taskings_respect_the_cooldown(events: Any) -> None:
+    events.execute("""
+        spawn("red-shorad", 2500, 500, 1)
+        spawn("red-arty", 15000, 0, 4)
+        setupEvents({}, {
+            {name = "red-shorad", side = "red", role = "SHORAD", sector = "1", reserve = "false"},
+            {name = "red-arty", side = "red", role = "ARTILLERY", reserve = "false", range = "30000"},
+        })
+        FLD.batteryFired('red-arty', 0)
+        FLD.tickFront(FLD.frontLines[1], 60)
+    """)
+    assert events.eval("#FLD.tasks.blue") == 1
+    events.execute("FLD.tickFront(FLD.frontLines[1], 90)")
+    assert events.eval("#FLD.tasks.blue") == 1
+    events.execute("FLD.tickFront(FLD.frontLines[1], 400)")
+    assert events.eval("#FLD.tasks.blue") == 2
+    assert events.eval("taskFor('blue', 'artillery battery located')") is not None
+    assert events.eval("taskFor('blue', 'air defence spotted')") is not None
+
+
+def test_wrecks_burn_then_smoulder_then_go_out(events: Any) -> None:
+    events.execute("""
+        setupEvents({})
+        FLD.onUnitDestroyed(deadUnit(500, 0, true), 100)
+        FLD.onUnitDestroyed(deadUnit(500, 0, true), 101)
+        FLD.onUnitDestroyed(deadUnit(400, 0, false), 100)
+        FLD.onUnitDestroyed(deadUnit(90000, 0, true), 100)
+        FLD.onUnitDestroyed(deadUnit(600, 0, true, Unit.Category.AIRPLANE), 100)
+    """)
+    # One fire per wreck near the fighting, nothing far away or for aircraft.
+    assert events.eval("effectCount()") == 2
+    assert events.eval("FLD.fires[1].phase") == "BURNING"
+    assert events.eval("effects[FLD.fires[1].effect].preset") in (1, 2)
+
+    events.execute("FLD.updateFires(100 + FLD.config.burnSecondsMax)")
+    assert events.eval("effectCount()") == 2
+    assert events.eval("FLD.fires[1].phase") == "SMOULDERING"
+    assert events.eval("effects[FLD.fires[1].effect].preset") == 5
+
+    events.execute(
+        "FLD.updateFires(100 + FLD.config.burnSecondsMax + FLD.config.smoulderSecondsMax + 1)"
+    )
+    assert events.eval("effectCount()") == 0
+    assert events.eval("#FLD.fires") == 0
+
+
+def test_battle_fires_are_capped(events: Any) -> None:
+    events.execute("""
+        setupEvents({})
+        FLD.config.maxBattleFires = 3
+        for i = 1, 5 do FLD.onUnitDestroyed(deadUnit(i * 100, 0, true), 100) end
+    """)
+    assert events.eval("effectCount()") == 3
+    assert events.eval("#FLD.fires") == 3
+
+
+def test_generated_events_load_in_lua(lua: Any) -> None:
+    mission_data = MissionData()
+    mission_data.front_line_director.append(
+        FrontLineDirectorInfo(
+            name="A/B",
+            sectors=[FrontLineSectorInfo(0.0, 0.0, 6000)],
+            blue=FrontLineSideInfo("AGGRESSIVE", 0, 0, 30000.0, 0.0),
+            red=FrontLineSideInfo("DEFENSIVE", None, 180, -30000.0, 0.0),
+            groups=[],
+            events=[
+                FrontLineEventInfo(
+                    kind="COLUMN",
+                    side="red",
+                    groups=[
+                        FrontLineGroupInfo("red-col", "red", "TANK", None, False),
+                        FrontLineGroupInfo("red-aa", "red", "SHORAD", None, False),
+                    ],
+                    destination_x=8000.0,
+                    destination_y=-50.0,
+                )
+            ],
+        )
+    )
+    game = cast(Game, SimpleNamespace(settings=Settings()))
+    lua_data = LuaData("dcsRetribution")
+    LuaGenerator(game, cast(Any, None), mission_data).generate_front_line_director_data(
+        lua_data
+    )
+    lua.execute(lua_data.create_operations_lua())
+    lua.execute("FLD.start(dcsRetribution.FrontLineDirector)")
+
+    event = lua.eval("FLD.frontLines[1].events[1]")
+    assert event.kind == "COLUMN" and event.side == "red"
+    assert (event.destX, event.destZ) == (8000, -50)
+    assert lua.eval("FLD.frontLines[1].events[1].groups[2].role") == "SHORAD"
+    assert 480 <= event.fireAt <= 2400
+
+
+def test_column_alive_when_time_runs_out_was_kept_safe(events: Any) -> None:
+    events.execute("""
+        spawn("red-column-1", 20000, 0, 4)
+        setupEvents({{kind = "COLUMN", side = "red", destinationX = "8000", destinationZ = "0",
+                      groups = {{name = "red-column-1", role = "TANK"}}}})
+        FLD.frontLines[1].events[1].fireAt = 10
+        FLD.tickFront(FLD.frontLines[1], 30)
+        FLD.updateTasks(30 + FLD.config.taskDurationSeconds)
+    """)
+    assert events.eval("taskFor('red', 'keep it safe').status") == "COMPLETE"
+    assert events.eval("taskFor('blue', 'reinforcement column').status") == "FAILED"
+
+
+def test_located_battery_is_announced_once(arty: Any) -> None:
+    arty.execute("""
+        setupArtillery('AGGRESSIVE', 'DEFENSIVE')
+        FLD.batteryFired('red-arty', 0)
+        FLD.config.fireMissionSeconds = 0
+        FLD.config.relocateSeconds = 0
+        FLD.config.retargetSeconds = 0
+        for t = 60, 600, 30 do
+            FLD.runArtillery(FLD.frontLines[1], 'blue', t)
+        end
+        announced = 0
+        for _, m in ipairs(messages) do
+            if string.find(m.text, "counter-battery", 1, true) then announced = announced + 1 end
+        end
+    """)
+    assert arty.eval("battery('blue-arty').missions") > 1
+    assert arty.eval("announced") == 1

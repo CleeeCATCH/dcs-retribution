@@ -11,6 +11,8 @@ if dcsRetribution and FLD then
         FLD.config.showMarks = options.showMarks ~= false
         FLD.config.messages = options.messages ~= false
         FLD.config.statusMenu = options.statusMenu ~= false
+        FLD.config.popupEvents = options.popupEvents ~= false
+        FLD.config.battleSmoke = options.battleSmoke ~= false
         FLD.config.debug = options.debug == true
     end
     FLD.init(dcsRetribution.FrontLineDirector)

@@ -21,7 +21,14 @@
 --     (or players' aircraft) actually see, by priority (counter-battery, air
 --     defence, counter-attacks, contested objectives), never danger close, and
 --     relocate after every fire mission because firing reveals them to the
---     enemy's counter-battery fire.
+--     enemy's counter-battery fire,
+--   * springs pop-up events with forces the mission generator drew from each
+--     side's undeployed inventory: flanking raids and reinforcement columns,
+--   * raises pop-up taskings from what happens on the battlefield (troops in
+--     contact, located batteries, breakthroughs, raids, columns, air defence)
+--     with a grid, an F10 mark and a completed or failed outcome,
+--   * sets destroyed vehicles burning where they died; fires die down to
+--     smouldering smoke and then go out.
 --
 -- The plan is read from dcsRetribution.FrontLineDirector, set by the mission
 -- generator. Configuration is set by frontline-director-config.lua, which
@@ -84,6 +91,26 @@ FLD.config = {
     retargetSeconds = 120,
     maxFireMissions = 6,
     fireMissionRadius = 150,
+    -- Pop-up events and taskings.
+    popupEvents = true,
+    -- Seconds into the mission when events may fire.
+    eventWindowMin = 480,
+    eventWindowMax = 2400,
+    -- Seconds between two new battlefield taskings of one side.
+    taskCooldownSeconds = 240,
+    maxActiveTasks = 3,
+    taskDurationSeconds = 1200,
+    -- A column within this distance of its destination has arrived.
+    columnArrivalDistance = 500,
+    -- Burning wrecks.
+    battleSmoke = true,
+    maxBattleFires = 30,
+    -- Only vehicles destroyed this close to an objective are set burning.
+    battleSmokeRange = 15000,
+    burnSecondsMin = 360,
+    burnSecondsMax = 720,
+    smoulderSecondsMin = 900,
+    smoulderSecondsMax = 1500,
     showMarks = true,
     messages = true,
     statusMenu = true,
@@ -310,12 +337,12 @@ function FLD.groupPosition(name)
     return p.x, p.z
 end
 
-local function routePoint(x, z, speed)
+local function routePoint(x, z, speed, action)
     return {
         x = x,
         y = z,
         type = "Turning Point",
-        action = "Off Road",
+        action = action or "Off Road",
         speed = speed,
         ETA = 0,
         ETA_locked = false,
@@ -324,7 +351,7 @@ local function routePoint(x, z, speed)
     }
 end
 
-function FLD.routeTo(name, x, z, speed)
+function FLD.routeTo(name, x, z, speed, action)
     if not FLD.movingUnits then
         return false
     end
@@ -337,7 +364,7 @@ function FLD.routeTo(name, x, z, speed)
         id = "Mission",
         params = {
             route = {
-                points = { routePoint(fromX, fromZ, speed), routePoint(x, z, speed) },
+                points = { routePoint(fromX, fromZ, speed, action), routePoint(x, z, speed, action) },
             },
         },
     }
@@ -420,6 +447,23 @@ function FLD.loadFrontLine(data)
             recentTargets = {},
             lastArtilleryMessage = -math.huge,
         }
+    end
+    front.events = {}
+    for _, e in ipairs(data.events or {}) do
+        local event = {
+            kind = e.kind,
+            side = e.side,
+            destX = tonumber(e.destinationX),
+            destZ = tonumber(e.destinationZ),
+            groups = {},
+            fireAt = FLD.config.eventWindowMin
+                + math.random() * (FLD.config.eventWindowMax - FLD.config.eventWindowMin),
+            fired = false,
+        }
+        for _, g in ipairs(e.groups or {}) do
+            table.insert(event.groups, { name = g.name, role = g.role })
+        end
+        table.insert(front.events, event)
     end
     for _, g in ipairs(data.groups or {}) do
         local reserve = toBool(g.reserve)
@@ -548,12 +592,32 @@ function FLD.showStatus(sideName)
     trigger.action.outTextForCoalition(coalitionOf(sideName), FLD.statusText(sideName), 30)
 end
 
+function FLD.tasksText(sideName)
+    local lines = {}
+    for _, task in ipairs(FLD.tasks[sideName]) do
+        if task.status == "ACTIVE" then
+            table.insert(lines, string.format("- %s: %s. Grid %s", task.front.name, task.title, FLD.grid(task.x, task.z)))
+        end
+    end
+    if #lines == 0 then
+        return "No active pop-up taskings."
+    end
+    return "Active pop-up taskings:\n" .. table.concat(lines, "\n")
+end
+
+function FLD.showTasks(sideName)
+    trigger.action.outTextForCoalition(coalitionOf(sideName), FLD.tasksText(sideName), 30)
+end
+
 local function addStatusMenus()
     if not FLD.config.statusMenu then
         return
     end
     for _, sideName in ipairs({ "blue", "red" }) do
         missionCommands.addCommandForCoalition(coalitionOf(sideName), "Front line status", nil, FLD.showStatus, sideName)
+        if FLD.config.popupEvents then
+            missionCommands.addCommandForCoalition(coalitionOf(sideName), "Pop-up taskings", nil, FLD.showTasks, sideName)
+        end
     end
 end
 
@@ -720,7 +784,7 @@ function FLD.consolidate(front, sideName)
     for _, group in ipairs(front.groups) do
         local sector = front.sectors[group.sector or 0]
         if sector and group.side == sideName and MANEUVER_ROLES[group.role]
-            and (group.state == "IDLE" or group.state == "COUNTER")
+            and (group.state == "IDLE" or group.state == "COUNTER" or group.state == "RAIDING")
             and sideHolding(sector) == sideName then
             local x, z = FLD.groupPosition(group.name)
             if x and distance(x, z, sector.objX, sector.objZ) <= FLD.config.objectiveRadius * 1.5 then
@@ -938,7 +1002,7 @@ function FLD.artilleryTargets(front, sideName, now)
 
     for _, located in ipairs(side.located) do
         if located.knownAt <= now and now - located.knownAt <= FLD.config.counterBatteryMemory then
-            table.insert(targets, { x = located.x, z = located.z, score = 8, name = located.name, kind = "battery" })
+            table.insert(targets, { x = located.x, z = located.z, score = 8, name = located.name, kind = "battery", located = located })
         end
     end
 
@@ -1074,7 +1138,8 @@ function FLD.runArtillery(front, sideName, now)
                             table.sort(targets, function(a, b)
                                 return a.score > b.score
                             end)
-                            if target.kind == "battery" then
+                            if target.kind == "battery" and not target.located.announced then
+                                target.located.announced = true
                                 sayArtillery(front, sideName, now, "enemy artillery located, counter-battery fire.")
                             elseif target.kind == "air defence" then
                                 sayArtillery(front, sideName, now, "artillery suppressing enemy air defence at the front.")
@@ -1104,11 +1169,553 @@ function FLD.decide(front, sideName, now)
 end
 
 function FLD.tickFront(front, now)
+    FLD.runEvents(front, now)
     for _, sector in ipairs(front.sectors) do
         FLD.updateSector(front, sector)
     end
     for _, sideName in ipairs({ "blue", "red" }) do
         FLD.decide(front, sideName, now)
+        if FLD.config.popupEvents then
+            FLD.battlefieldTasks(front, sideName, now)
+        end
+    end
+end
+
+function FLD.updateTasks(now)
+    for _, sideName in ipairs({ "blue", "red" }) do
+        for _, task in ipairs(FLD.tasks[sideName]) do
+            FLD.updateTask(task, now)
+        end
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Pop-up taskings
+-------------------------------------------------------------------------------
+
+FLD.tasks = { blue = {}, red = {} }
+FLD.lastTask = { blue = -math.huge, red = -math.huge }
+FLD.nextTaskId = 1
+
+function FLD.grid(x, z)
+    local ok, text = pcall(function()
+        local lat, lon = coord.LOtoLL({ x = x, y = 0, z = z })
+        if mist and mist.tostringMGRS then
+            return mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 4)
+        end
+        return string.format("%.4f %.4f", lat, lon)
+    end)
+    if ok and text then
+        return text
+    end
+    return string.format("x %d z %d", x, z)
+end
+
+local function activeTasks(sideName)
+    local count = 0
+    for _, task in ipairs(FLD.tasks[sideName]) do
+        if task.status == "ACTIVE" then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+local function hasTask(sideName, key)
+    for _, task in ipairs(FLD.tasks[sideName]) do
+        if task.key == key and task.status == "ACTIVE" then
+            return true
+        end
+    end
+    return false
+end
+
+function FLD.placeTaskMark(task)
+    if task.markId then
+        trigger.action.removeMark(task.markId)
+    end
+    task.markId = FLD.nextMarkId
+    FLD.nextMarkId = FLD.nextMarkId + 1
+    trigger.action.markToCoalition(
+        task.markId, "TASKING: " .. task.title, { x = task.x, y = 0, z = task.z }, coalitionOf(task.side), true
+    )
+end
+
+-- Raises a pop-up tasking. kind is DESTROY (kill or break the target groups),
+-- DEFEND (hold the sector objective) or ESCORT (get the column through).
+-- Event taskings bypass the cooldown, battlefield taskings respect it.
+function FLD.raiseTask(front, sideName, now, spec, urgent)
+    if not FLD.config.popupEvents or hasTask(sideName, spec.key) then
+        return nil
+    end
+    if not urgent and (now - FLD.lastTask[sideName] < FLD.config.taskCooldownSeconds
+        or activeTasks(sideName) >= FLD.config.maxActiveTasks) then
+        return nil
+    end
+    local task = {
+        id = FLD.nextTaskId,
+        side = sideName,
+        front = front,
+        key = spec.key,
+        kind = spec.kind,
+        title = spec.title,
+        targets = spec.targets or {},
+        sector = spec.sector,
+        x = spec.x,
+        z = spec.z,
+        expires = now + (spec.duration or FLD.config.taskDurationSeconds),
+        failWhen = spec.failWhen,
+        status = "ACTIVE",
+        follow = spec.follow,
+    }
+    FLD.nextTaskId = FLD.nextTaskId + 1
+    FLD.lastTask[sideName] = now
+    table.insert(FLD.tasks[sideName], task)
+    FLD.placeTaskMark(task)
+    if FLD.config.messages then
+        trigger.action.outTextForCoalition(
+            coalitionOf(sideName),
+            string.format("POP-UP TASKING - %s\n%s. Grid %s (marked on the F10 map).", front.name, task.title, FLD.grid(task.x, task.z)),
+            30
+        )
+    end
+    return task
+end
+
+local function finishTask(task, status)
+    task.status = status
+    if task.markId then
+        trigger.action.removeMark(task.markId)
+        task.markId = nil
+    end
+    local label = status == "COMPLETE" and "TASKING COMPLETE" or "TASKING FAILED"
+    say(task.side, string.format("%s - %s: %s.", label, task.front.name, task.title))
+end
+
+local function findGroup(front, name)
+    for _, group in ipairs(front.groups) do
+        if group.name == name then
+            return group
+        end
+    end
+    return nil
+end
+
+-- A column has arrived when no group is still on the road and at least one
+-- made it to the front. A destroyed column never arrives.
+local function columnArrived(front, names)
+    local any = false
+    for _, name in ipairs(names) do
+        local group = findGroup(front, name)
+        if group and group.state == "ARRIVING" then
+            return false
+        end
+        if group and group.state ~= "DEAD" and group.state ~= "WITHDRAWN" then
+            any = true
+        end
+    end
+    return any
+end
+
+-- Share of the targets' units still alive and fighting.
+local function targetStrength(task)
+    local alive, initial = 0, 0
+    for _, name in ipairs(task.targets) do
+        local group = findGroup(task.front, name)
+        local units = #FLD.aliveUnits(name)
+        initial = initial + math.max(group and group.initialSize or units, 1)
+        if not (group and group.state == "WITHDRAWN") then
+            alive = alive + units
+        end
+    end
+    if initial == 0 then
+        return 0
+    end
+    return alive / initial
+end
+
+function FLD.updateTask(task, now)
+    if task.status ~= "ACTIVE" then
+        return
+    end
+    if task.failWhen and task.failWhen(task) then
+        finishTask(task, "FAILED")
+        return
+    end
+    if task.kind == "DESTROY" then
+        if targetStrength(task) == 0 then
+            finishTask(task, "COMPLETE")
+            return
+        end
+    elseif task.kind == "DEFEND" then
+        local sector = task.front.sectors[task.sector]
+        if sector.holder == OTHER_SIDE[task.side] and not sector.contested then
+            finishTask(task, "FAILED")
+            return
+        end
+        if sector.holder == task.side and not sector.contested then
+            finishTask(task, "COMPLETE")
+            return
+        end
+    elseif task.kind == "ESCORT" then
+        if targetStrength(task) < 0.5 then
+            finishTask(task, "FAILED")
+            return
+        end
+        if columnArrived(task.front, task.targets) then
+            finishTask(task, "COMPLETE")
+            return
+        end
+    end
+    if now >= task.expires then
+        -- Holding out, or keeping the column alive, until the time is up is a
+        -- success. Targets still standing at the end are a failure.
+        finishTask(task, (task.kind == "DEFEND" or task.kind == "ESCORT") and "COMPLETE" or "FAILED")
+        return
+    end
+    -- Keep the mark on moving targets.
+    if task.follow and task.targets[1] then
+        for _, name in ipairs(task.targets) do
+            local x, z = FLD.groupPosition(name)
+            if x then
+                if distance(x, z, task.x, task.z) > 300 then
+                    task.x, task.z = x, z
+                    FLD.placeTaskMark(task)
+                end
+                break
+            end
+        end
+    end
+end
+
+local function groupNames(groups)
+    local names = {}
+    for _, group in ipairs(groups) do
+        table.insert(names, group.name)
+    end
+    return names
+end
+
+local function nearestSector(front, x, z)
+    local best, bestDistance = nil, math.huge
+    for _, sector in ipairs(front.sectors) do
+        local d = distance(x, z, sector.objX, sector.objZ)
+        if d < bestDistance then
+            best, bestDistance = sector, d
+        end
+    end
+    return best
+end
+
+-- Battlefield taskings: raised from what the director sees happening.
+function FLD.battlefieldTasks(front, sideName, now)
+    local enemy = OTHER_SIDE[sideName]
+    local side = front.sides[sideName]
+
+    for _, sector in ipairs(front.sectors) do
+        if sector.contested and sector.holder == sideName and sector.current[sideName] > 0
+            and strengthShare(sector, sideName) < 0.7 then
+            FLD.raiseTask(front, sideName, now, {
+                key = "defend" .. sector.index,
+                kind = "DEFEND",
+                sector = sector.index,
+                title = string.format("Troops in contact at %s, CAS requested to hold it", sector.label),
+                x = sector.objX,
+                z = sector.objZ,
+                duration = 900,
+            })
+        end
+    end
+
+    for _, located in ipairs(side.located) do
+        local group = findGroup(front, located.name)
+        if located.knownAt <= now and group and group.state ~= "DEAD" then
+            FLD.raiseTask(front, sideName, now, {
+                key = "battery" .. located.name,
+                kind = "DESTROY",
+                targets = { located.name },
+                title = "Enemy artillery battery located, destroy it",
+                x = located.x,
+                z = located.z,
+            })
+        end
+    end
+
+    for _, group in ipairs(front.groups) do
+        if group.side == enemy and group.state ~= "DEAD" then
+            local x, z = FLD.groupPosition(group.name)
+            if x then
+                local sector = nearestSector(front, x, z)
+                local where = sector and sector.label or "the front"
+                if group.state == "EXPLOITING" then
+                    FLD.raiseTask(front, sideName, now, {
+                        key = "breakthrough" .. (group.sector or 0),
+                        kind = "DESTROY",
+                        targets = { group.name },
+                        title = string.format("Stop the enemy breakthrough at %s", where),
+                        x = x,
+                        z = z,
+                        follow = true,
+                    })
+                elseif group.state == "COUNTER" and FLD.isSpotted(front, sideName, x, z) then
+                    FLD.raiseTask(front, sideName, now, {
+                        key = "counter" .. group.name,
+                        kind = "DESTROY",
+                        targets = { group.name },
+                        title = string.format("Enemy counter-attack moving on %s, hit it before it arrives", where),
+                        x = x,
+                        z = z,
+                        follow = true,
+                    })
+                elseif group.role == "SHORAD" and FLD.isSpotted(front, sideName, x, z) then
+                    FLD.raiseTask(front, sideName, now, {
+                        key = "shorad" .. group.name,
+                        kind = "DESTROY",
+                        targets = { group.name },
+                        title = string.format("Enemy air defence spotted near %s, clear it for the helicopters", where),
+                        x = x,
+                        z = z,
+                    })
+                end
+            end
+        end
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Pop-up events
+-------------------------------------------------------------------------------
+
+-- Where a flanking raid goes: the enemy guns if any are left, otherwise the
+-- weakest objective the enemy holds, otherwise the planned sector.
+function FLD.raidTarget(front, event)
+    local enemy = OTHER_SIDE[event.side]
+    local x, z = FLD.groupPosition(event.groups[1].name)
+    local best, bestDistance = nil, math.huge
+    for _, group in ipairs(front.groups) do
+        if group.side == enemy and group.role == "ARTILLERY" and groupStrength(group) > 0 then
+            local gx, gz = FLD.groupPosition(group.name)
+            local d = distance(x, z, gx, gz)
+            if d < bestDistance then
+                best, bestDistance = { x = gx, z = gz, name = "the enemy artillery", theirName = "our artillery" }, d
+            end
+        end
+    end
+    if best and bestDistance <= 25000 then
+        return best, nil
+    end
+    local weakest, weakestStrength = nil, math.huge
+    for _, sector in ipairs(front.sectors) do
+        if sector.holder == enemy and sector.current[enemy] < weakestStrength then
+            weakest, weakestStrength = sector, sector.current[enemy]
+        end
+    end
+    local sector = weakest or nearestSector(front, event.destX, event.destZ)
+    return { x = sector.objX, z = sector.objZ, name = sector.label, theirName = sector.label }, sector.index
+end
+
+function FLD.fireEvent(front, event, now)
+    event.fired = true
+    local activated = {}
+    for _, g in ipairs(event.groups) do
+        local dcsGroup = Group.getByName(g.name)
+        if dcsGroup then
+            dcsGroup:activate()
+            local group = {
+                name = g.name,
+                side = event.side,
+                role = g.role,
+                reserve = false,
+                state = event.kind == "FLANK" and "RAIDING" or "ARRIVING",
+                breakPoint = FLD.config.breakPointMin
+                    + math.random() * (FLD.config.breakPointMax - FLD.config.breakPointMin),
+                initialSize = #FLD.aliveUnits(g.name),
+                weaponHold = false,
+                range = 0,
+                artyState = "READY",
+                artyUntil = 0,
+                missions = 0,
+            }
+            table.insert(front.groups, group)
+            table.insert(activated, group)
+        end
+    end
+    if #activated == 0 then
+        return
+    end
+    local enemy = OTHER_SIDE[event.side]
+    local x, z = FLD.groupPosition(activated[1].name)
+    local names = groupNames(activated)
+
+    if event.kind == "FLANK" then
+        local target, sectorIndex = FLD.raidTarget(front, event)
+        for _, group in ipairs(activated) do
+            group.sector = sectorIndex
+            FLD.setFireAtWill(group.name, true)
+            FLD.routeTo(group.name, target.x, target.z, SPEED_ASSAULT)
+        end
+        local sector = front.sectors[sectorIndex or 0]
+        if sector then
+            sector.initial[event.side] = sector.initial[event.side] + activated[1].initialSize
+        end
+        say(event.side, string.format("%s: flanking raid launched toward %s.", front.name, target.name))
+        FLD.raiseTask(front, enemy, now, {
+            key = "raid" .. names[1],
+            kind = "DESTROY",
+            targets = names,
+            title = string.format("Enemy armor is flanking toward %s, intercept it", target.theirName),
+            x = x,
+            z = z,
+            follow = true,
+        }, true)
+    else
+        for _, group in ipairs(activated) do
+            FLD.routeTo(group.name, event.destX, event.destZ, SPEED_ASSAULT, "On Road")
+        end
+        local arrived = function()
+            return columnArrived(front, names)
+        end
+        say(event.side, string.format("%s: reinforcement column (%d groups) on the road to the front.", front.name, #activated))
+        FLD.raiseTask(front, enemy, now, {
+            key = "column" .. names[1],
+            kind = "DESTROY",
+            targets = names,
+            title = "Enemy reinforcement column on the road, interdict it before it reaches the front",
+            x = x,
+            z = z,
+            follow = true,
+            failWhen = arrived,
+        }, true)
+        FLD.raiseTask(front, event.side, now, {
+            key = "escort" .. names[1],
+            kind = "ESCORT",
+            targets = names,
+            title = "Friendly reinforcement column moving up, keep it safe until it reaches the front",
+            x = x,
+            z = z,
+            follow = true,
+        }, true)
+    end
+end
+
+function FLD.updateColumns(front)
+    for _, group in ipairs(front.groups) do
+        if group.state == "ARRIVING" then
+            local event = nil
+            for _, e in ipairs(front.events) do
+                for _, g in ipairs(e.groups) do
+                    if g.name == group.name then
+                        event = e
+                    end
+                end
+            end
+            local x, z = FLD.groupPosition(group.name)
+            if event and x and distance(x, z, event.destX, event.destZ) <= FLD.config.columnArrivalDistance then
+                local sector = nearestSector(front, x, z)
+                group.sector = sector and sector.index
+                group.state = "RESERVE"
+                group.reserve = true
+                local side = front.sides[group.side]
+                local hx, hz = T.findPosition(x, z, side.heading, "hide")
+                FLD.routeTo(group.name, hx, hz, SPEED_REPOSITION)
+                say(group.side, string.format("%s: reinforcements arrived, %s joins the reserve.", front.name, group.name))
+            end
+        end
+    end
+end
+
+function FLD.runEvents(front, now)
+    if not FLD.config.popupEvents or not FLD.movingUnits then
+        return
+    end
+    for _, event in ipairs(front.events) do
+        if not event.fired and now >= event.fireAt and front.sides[event.side].stance ~= "RETREAT" then
+            FLD.fireEvent(front, event, now)
+        end
+    end
+    FLD.updateColumns(front)
+end
+
+-------------------------------------------------------------------------------
+-- Battle smoke
+-------------------------------------------------------------------------------
+
+FLD.fires = {}
+FLD.nextFireId = 1
+FLD.burned = {}
+
+local function startEffect(fire, preset, density)
+    fire.effect = string.format("fld-fire-%d", FLD.nextFireId)
+    FLD.nextFireId = FLD.nextFireId + 1
+    trigger.action.effectSmokeBig({ x = fire.x, y = fire.y, z = fire.z }, preset, density, fire.effect)
+end
+
+local function nearAnyObjective(x, z)
+    for _, front in ipairs(FLD.frontLines) do
+        for _, sector in ipairs(front.sectors) do
+            if distance(x, z, sector.objX, sector.objZ) <= FLD.config.battleSmokeRange then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- A destroyed vehicle burns where it died. Armor burns hotter and tanks
+-- sometimes cook off, soft vehicles mostly just smoke.
+function FLD.burnWreck(unitName, point, armored, now)
+    if not FLD.config.battleSmoke or FLD.burned[unitName] or not nearAnyObjective(point.x, point.z) then
+        return
+    end
+    FLD.burned[unitName] = true
+    if #FLD.fires >= FLD.config.maxBattleFires then
+        local oldest = table.remove(FLD.fires, 1)
+        trigger.action.effectSmokeStop(oldest.effect)
+    end
+    local fire = { x = point.x, y = T.height(point.x, point.z), z = point.z, phase = "BURNING" }
+    local preset = 5
+    if armored then
+        preset = math.random() < 0.3 and 2 or 1
+    elseif math.random() < 0.4 then
+        preset = 1
+    end
+    startEffect(fire, preset, 0.5 + math.random() * 0.4)
+    fire.untilTime = now + FLD.config.burnSecondsMin
+        + math.random() * (FLD.config.burnSecondsMax - FLD.config.burnSecondsMin)
+    table.insert(FLD.fires, fire)
+end
+
+function FLD.updateFires(now)
+    local remaining = {}
+    for _, fire in ipairs(FLD.fires) do
+        if now >= fire.untilTime then
+            trigger.action.effectSmokeStop(fire.effect)
+            if fire.phase == "BURNING" then
+                -- The fire dies down, the wreck smoulders for a while.
+                fire.phase = "SMOULDERING"
+                startEffect(fire, 5, 0.3 + math.random() * 0.2)
+                fire.untilTime = now + FLD.config.smoulderSecondsMin
+                    + math.random() * (FLD.config.smoulderSecondsMax - FLD.config.smoulderSecondsMin)
+                table.insert(remaining, fire)
+            end
+        else
+            table.insert(remaining, fire)
+        end
+    end
+    FLD.fires = remaining
+end
+
+function FLD.onUnitDestroyed(unit, now)
+    local ok, err = pcall(function()
+        local desc = unit:getDesc()
+        if not desc or desc.category ~= Unit.Category.GROUND_UNIT then
+            return
+        end
+        local armored = unit:hasAttribute("Armored vehicles") or unit:hasAttribute("Tanks")
+        FLD.burnWreck(unit:getName(), unit:getPoint(), armored, now)
+    end)
+    if not ok then
+        debug("could not set wreck burning: " .. tostring(err))
     end
 end
 
@@ -1123,15 +1730,27 @@ function FLD.tick(_, now)
             env.error("DCSRetribution|Front line director tick failed on " .. tostring(front.name) .. ": " .. tostring(err))
         end
     end
+    for _, update in ipairs({ FLD.updateTasks, FLD.updateFires }) do
+        local ok, err = pcall(update, now)
+        if not ok then
+            env.error("DCSRetribution|Front line director update failed: " .. tostring(err))
+        end
+    end
     return now + FLD.config.tickSeconds
 end
 
-local function addShotHandler()
+local function addWorldEventHandler()
     if not world or not world.addEventHandler then
         return
     end
     local handler = {}
     function handler:onEvent(event)
+        if event.id == world.event.S_EVENT_DEAD or event.id == world.event.S_EVENT_UNIT_LOST then
+            if event.initiator then
+                FLD.onUnitDestroyed(event.initiator, timer.getTime())
+            end
+            return
+        end
         if event.id ~= world.event.S_EVENT_SHOT and event.id ~= world.event.S_EVENT_SHOOTING_START then
             return
         end
@@ -1169,7 +1788,7 @@ function FLD.start(data)
     end
     if #FLD.frontLines > 0 then
         addStatusMenus()
-        addShotHandler()
+        addWorldEventHandler()
         timer.scheduleFunction(FLD.tick, nil, timer.getTime() + FLD.config.tickSeconds)
     end
 end

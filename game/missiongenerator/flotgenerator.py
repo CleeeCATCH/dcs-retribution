@@ -36,7 +36,9 @@ from game.ground_forces.ai_ground_planner import (
     CombatGroup,
     CombatGroupRole,
     DISTANCE_FROM_FRONTLINE,
+    reserve_armor_for,
 )
+from game.ground_forces.frontline_events import FrontLineEventKind, plan_events
 from game.ground_forces.combat_stance import CombatStance
 from game.ground_forces.frontline_sectors import (
     FrontLineSector,
@@ -56,6 +58,7 @@ from .frontlineconflictdescription import FrontLineConflictDescription
 from .groundforcepainter import GroundForcePainter
 from .missiondata import (
     FrontLineDirectorInfo,
+    FrontLineEventInfo,
     FrontLineGroupInfo,
     FrontLineSectorInfo,
     FrontLineSideInfo,
@@ -95,6 +98,13 @@ RESERVE_DEPTH = 3000, 4500
 
 # ATGM teams stop short of the objective to overwatch the assault.
 ATGM_OVERWATCH_DISTANCE = 1500
+
+# Flanking raids wait this far beyond a sector edge and behind their own lines.
+FLANK_LATERAL_OFFSET = 1500, 3000
+FLANK_DEPTH = 5000, 7000
+# Reinforcement columns start this far back toward their base, at most.
+COLUMN_START_DISTANCE = 15000
+COLUMN_SPACING = 300
 
 
 class FlotGenerator:
@@ -193,8 +203,13 @@ class FlotGenerator:
         )
 
         if player_plan is not None and enemy_plan is not None:
+            events: list[FrontLineEventInfo] = []
+            if self._events_enabled():
+                rng = random.Random()
+                events += self._generate_events(Player.BLUE, player_plan, rng)
+                events += self._generate_events(Player.RED, enemy_plan, rng)
             self._record_director_plan(
-                player_plan, enemy_plan, player_groups, enemy_groups
+                player_plan, enemy_plan, player_groups, enemy_groups, events
             )
 
         # Add JTAC
@@ -901,6 +916,7 @@ class FlotGenerator:
         enemy_plan: SidePlan,
         player_groups: List[Tuple[VehicleGroup, CombatGroup]],
         enemy_groups: List[Tuple[VehicleGroup, CombatGroup]],
+        events: list[FrontLineEventInfo],
     ) -> None:
         """Hands the sector plan to the in-mission front line director."""
         assert self.conflict.heading is not None
@@ -951,8 +967,112 @@ class FlotGenerator:
                     enemy_plan, self.conflict.heading.left, self.conflict.blue_cp
                 ),
                 groups=groups,
+                events=events,
             )
         )
+
+    def _events_enabled(self) -> bool:
+        return self.game.settings.perf_moving_units and bool(
+            self.game.settings.plugins.get(
+                f"{FRONT_LINE_DIRECTOR_PLUGIN}.popupEvents", True
+            )
+        )
+
+    def _generate_events(
+        self, is_player: Player, plan: SidePlan, rng: random.Random
+    ) -> list[FrontLineEventInfo]:
+        """Generates late-activated event forces from undeployed armor."""
+        assert self.conflict.heading is not None
+        cp = self.conflict.front_line.control_point_friendly_to(is_player)
+        spares = self.mission_data.front_line_event_spares.setdefault(
+            cp.id, reserve_armor_for(cp)
+        )
+        spawn_heading = (
+            self.conflict.heading.left
+            if is_player.is_blue
+            else self.conflict.heading.right
+        )
+        country = self.mission.country(
+            self.game.coalition_for(is_player).faction.country.name
+        )
+        side = "blue" if is_player.is_blue else "red"
+        theater = self.conflict.theater
+
+        events = []
+        for event in plan_events(plan.stance, spares, rng):
+            if event.kind == FrontLineEventKind.FLANK:
+                sector = rng.choice(self.sectors)
+                if rng.random() < 0.5:
+                    lateral = sector.start_offset - rng.randint(*FLANK_LATERAL_OFFSET)
+                else:
+                    lateral = sector.end_offset + rng.randint(*FLANK_LATERAL_OFFSET)
+                start = self.get_valid_position_for_group(
+                    rng.randint(*FLANK_DEPTH), spawn_heading, lateral
+                )
+                destination = self._sector_center(sector.index)
+            else:
+                reserve_sector = (
+                    plan.main_effort
+                    if plan.main_effort is not None
+                    else len(self.sectors) // 2
+                )
+                destination = self.get_valid_position_for_group(
+                    DISTANCE_FROM_FRONTLINE[CombatGroupRole.TANK][1] + RESERVE_DEPTH[1],
+                    spawn_heading,
+                    self.sectors[reserve_sector].center_offset,
+                )
+                start = theater.nearest_land_pos(
+                    destination.point_from_heading(
+                        destination.heading_between_point(cp.position),
+                        min(
+                            COLUMN_START_DISTANCE,
+                            destination.distance_to_point(cp.position) * 0.7,
+                        ),
+                    )
+                )
+            # Columns trail back from their lead group, away from the destination.
+            trail = destination.heading_between_point(start)
+            facing = Heading.from_degrees(start.heading_between_point(destination))
+            groups = []
+            for n, event_group in enumerate(event.groups):
+                position = theater.nearest_land_pos(
+                    start.point_from_heading(trail, n * COLUMN_SPACING)
+                )
+                dcs_group = self._generate_group(
+                    is_player,
+                    country,
+                    event_group.unit_type,
+                    event_group.size,
+                    position,
+                    heading=facing,
+                )
+                dcs_group.late_activation = True
+                self._set_skill(dcs_group, is_player)
+                groups.append(
+                    FrontLineGroupInfo(
+                        group_name=dcs_group.name,
+                        side=side,
+                        role=event_group.role.name,
+                        sector=None,
+                        reserve=False,
+                    )
+                )
+            events.append(
+                FrontLineEventInfo(
+                    kind=event.kind.value,
+                    side=side,
+                    groups=groups,
+                    destination_x=destination.x,
+                    destination_y=destination.y,
+                )
+            )
+        return events
+
+    def _set_skill(self, group: VehicleGroup, player: Player) -> None:
+        if player == Player.BLUE:
+            group.set_skill(Skill(self.game.settings.player_skill))
+        else:
+            group.set_skill(Skill(self.game.settings.enemy_vehicle_skill))
 
     def _generate_groups(
         self,
@@ -998,10 +1118,7 @@ class FlotGenerator:
                 final_position,
                 heading=spawn_heading.opposite,
             )
-            if is_player == Player.BLUE:
-                g.set_skill(Skill(self.game.settings.player_skill))
-            else:
-                g.set_skill(Skill(self.game.settings.enemy_vehicle_skill))
+            self._set_skill(g, is_player)
             positioned_groups.append((g, group))
 
             if group.role in [CombatGroupRole.APC, CombatGroupRole.IFV]:

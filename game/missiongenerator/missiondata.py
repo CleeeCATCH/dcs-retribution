@@ -141,12 +141,24 @@ class FrontLineGroupInfo:
 
 
 @dataclass
+class FrontLineEventInfo:
+    kind: str
+    side: str
+    # Late-activated groups, the director activates them when the event fires.
+    groups: list[FrontLineGroupInfo]
+    # Where a column drives to. pydcs x/y, which are DCS vec3 x/z.
+    destination_x: float
+    destination_y: float
+
+
+@dataclass
 class FrontLineDirectorInfo:
     name: str
     sectors: list[FrontLineSectorInfo]
     blue: FrontLineSideInfo
     red: FrontLineSideInfo
     groups: list[FrontLineGroupInfo]
+    events: list[FrontLineEventInfo] = field(default_factory=list)
 
 
 @dataclass
@@ -164,3 +176,8 @@ class MissionData:
     player_frontline_groups: list[FrontlineUnitGroupsInfo] = field(default_factory=list)
     enemy_frontline_groups: list[FrontlineUnitGroupsInfo] = field(default_factory=list)
     front_line_director: list[FrontLineDirectorInfo] = field(default_factory=list)
+    # Undeployed armor per control point still free for front line events. A
+    # control point fighting on several fronts shares it between them.
+    front_line_event_spares: dict[UUID, dict[GroundUnitType, int]] = field(
+        default_factory=dict
+    )

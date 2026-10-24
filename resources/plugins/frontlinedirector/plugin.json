@@ -1,6 +1,6 @@
 {
     "nameInUI": "Front line director",
-    "descriptionInUI": "Plans front lines in sectors with objectives and runs them live during the mission: terrain-aware battle positions, reserve task forces that counter-attack, broken units falling back to cover, breakthroughs exploited toward the enemy base, ambushes, and smarter front line artillery (fires only on spotted enemies, prioritizes air defence and counter-battery, shoots and scoots). Adds a 'Front line status' radio menu.",
+    "descriptionInUI": "Plans front lines in sectors with objectives and runs them live during the mission: terrain-aware battle positions, reserve task forces that counter-attack, broken units falling back to cover, breakthroughs exploited toward the enemy base, ambushes, smarter front line artillery, pop-up events and taskings using each side's real spare units, and wrecks that burn where they were destroyed.",
     "defaultValue": true,
     "specificOptions": [
         {
@@ -16,6 +16,16 @@
         {
             "nameInUI": "Front line status radio menu",
             "mnemonic": "statusMenu",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "Pop-up events and taskings (uses each side's undeployed units)",
+            "mnemonic": "popupEvents",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "Destroyed vehicles burn and smoke",
+            "mnemonic": "battleSmoke",
             "defaultValue": true
         },
         {

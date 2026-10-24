@@ -444,6 +444,18 @@ class LuaGenerator:
                 )
                 if group.weapon_range:
                     group_item.add_key_value("range", str(group.weapon_range))
+            events = front_line.add_item("events")
+            for event in info.events:
+                event_item = events.add_item()
+                event_item.add_item("kind").set_value(event.kind)
+                event_item.add_item("side").set_value(event.side)
+                event_item.add_item("destinationX").set_value(str(event.destination_x))
+                event_item.add_item("destinationZ").set_value(str(event.destination_y))
+                event_groups = event_item.add_item("groups")
+                for group in event.groups:
+                    event_group = event_groups.add_item()
+                    event_group.add_key_value("name", group.group_name)
+                    event_group.add_key_value("role", group.role)
 
     def inject_lua_trigger(self, contents: str, comment: str) -> None:
         trigger = TriggerStart(comment=comment)
