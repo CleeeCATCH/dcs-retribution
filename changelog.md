@@ -35,6 +35,7 @@
 * **[UX]** Add the ability to filter campaigns by version, map, and performance
 * **[Engine]** Bump campaign version to 10.9 for motorpool support
 * **[Modding]** Update UH-60L mod to v2.1.5 including MH-60L DAP
+* **[Campaign]** Inverted campaigns now start the player at the same disadvantage as the normal campaign. Instead of taking over the enemy's whole territory, the player holds the enemy's rear with as many bases as they normally start with (keeping the same mix of front-line bases and rear airfields), and the enemy holds everything else, so the front line starts near the player. Each side also keeps the squadrons it has in the normal campaign: the player's squadrons move to their new bases, and the enemy's squadrons from those bases fall back to the nearest base the enemy still holds. Campaigns whose designers already made inversion keep the player at a disadvantage are unchanged.
 
 ## Fixes
 * **[Campaign]** Inverting a campaign no longer leaves part of the enemy's bases (and the squadrons defined there) with the enemy, so the player side no longer starts with squadrons missing. Affects Vectron's Claw, Caucasus Multi (Full, Georgia, Russia), Desert Sabre, Retake the Falklands, The Valley of Rotary, Clash of the Titans, Exercises Able Archer, Bright Star, Quasar and Vegas Nerve, Golan Heights Lite, Landing at Agat, Mozdok to Maykop, Northern Russia, Aegean Aegis, Allied Sword, Blackball, Desert Trident, Gazelle, Pacific Repartee, Red Sea Rising, Scenic Inland, Scenic Route and Slava Ukraini.

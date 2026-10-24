@@ -34,6 +34,7 @@ from . import (
     Fob,
     OffMapSpawn,
 )
+from .invertedstart import InvertedStart
 from .player import Player
 from .theatergroup import (
     IadsGroundGroup,
@@ -185,14 +186,13 @@ class GameGenerator:
     def prepare_theater(self) -> None:
         to_remove: List[ControlPoint] = []
 
-        # Remove carrier and lha, invert situation if needed
-        for cp in self.theater.controlpoints:
-            if self.generator_settings.inverted:
-                if not cp.starting_coalition.is_neutral:
-                    cp.starting_coalition = (
-                        Player.RED if not cp.captured_invert else Player.BLUE
-                    )
+        inverted_start = None
+        if self.generator_settings.inverted:
+            inverted_start = InvertedStart(self.theater.controlpoints)
+            inverted_start.assign_bases()
 
+        # Remove carrier and lha
+        for cp in self.theater.controlpoints:
             if cp.is_carrier and self.should_remove_carrier(cp.starting_coalition):
                 to_remove.append(cp)
             elif cp.is_lha and self.should_remove_lha(cp.starting_coalition):
@@ -201,6 +201,11 @@ class GameGenerator:
         # do remove
         for cp in to_remove:
             self.theater.controlpoints.remove(cp)
+
+        if inverted_start is not None:
+            self.air_wing_config = inverted_start.move_squadrons(
+                self.air_wing_config, self.theater.controlpoints
+            )
 
 
 class ControlPointGroundObjectGenerator:
