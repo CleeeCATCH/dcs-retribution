@@ -148,3 +148,25 @@ def test_player_keeps_an_airfield_for_their_jets() -> None:
     InvertedStart(control_points).assign_bases()
     player_bases = [cp for cp in control_points if cp.starting_coalition.is_blue]
     assert any(cp.cptype is ControlPointType.AIRBASE for cp in player_bases)
+
+
+def test_bases_left_without_squadrons_can_be_looked_up() -> None:
+    # The squadron assigner looks up every base a side holds. Bases that never
+    # had squadrons, or whose squadrons moved away, must give an empty list
+    # like the campaign's own config does, not a KeyError.
+    control_points = campaign()
+    foothold, blue_rear_1 = control_points[:2]
+    squadrons: dict[ControlPoint, Any] = {
+        foothold: ["UH-1H"],
+        blue_rear_1: ["F-16"],
+    }
+    inverted = InvertedStart(control_points)
+    inverted.assign_bases()
+    by_location = inverted.move_squadrons(
+        CampaignAirWingConfig(squadrons), control_points
+    ).by_location
+
+    for cp in control_points:
+        assert isinstance(by_location[cp], list)
+    assert by_location[foothold] == []
+    assert by_location[control_points[3]] == []

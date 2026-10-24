@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import math
-from collections import deque
+from collections import defaultdict, deque
 from dataclasses import replace
 from typing import Iterable, Optional, TYPE_CHECKING
 
@@ -148,9 +148,12 @@ class InvertedStart:
         if not self.rebalanced:
             return air_wing
 
-        by_location: dict[ControlPoint, list[SquadronConfig]] = {
-            cp: list(squadrons) for cp, squadrons in air_wing.by_location.items()
-        }
+        # A defaultdict like the campaign's own config: the squadron assigner
+        # looks up every base the side holds, including bases left without
+        # squadrons.
+        by_location: dict[ControlPoint, list[SquadronConfig]] = defaultdict(list)
+        for cp, squadrons in air_wing.by_location.items():
+            by_location[cp] = list(squadrons)
         control_points = [
             cp for cp in control_points if not self.original[cp].is_neutral
         ]
