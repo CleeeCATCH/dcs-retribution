@@ -893,8 +893,10 @@ class FlotGenerator:
     ) -> Optional[Point]:
         if assignment is None or assignment.sector is None:
             return None
-        return self._sector_center(assignment.sector).random_point_within(
-            RANDOM_OFFSET_ATTACK
+        return self.conflict.theater.nearest_land_pos(
+            self._sector_center(assignment.sector).random_point_within(
+                RANDOM_OFFSET_ATTACK
+            )
         )
 
     def _lateral_offset_for(

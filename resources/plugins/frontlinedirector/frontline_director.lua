@@ -254,6 +254,49 @@ function T.isGround(x, z)
     return surface == land.SurfaceType.LAND or surface == land.SurfaceType.ROAD
 end
 
+-- The ground closest to a point in water: searched around it, or failing
+-- that walking back toward fromX, fromZ (where a group stands on land).
+function T.nearestGround(x, z, fromX, fromZ)
+    if T.isGround(x, z) then
+        return x, z
+    end
+    for _, r in ipairs({ 100, 250, 500, 1000, 2000 }) do
+        local bestX, bestZ, bestDist = nil, nil, math.huge
+        for i = 0, 15 do
+            local px, pz = T.offset(x, z, i * 22.5, r)
+            -- Prefer ground on the group's side of the water.
+            local d = distance(px, pz, fromX, fromZ)
+            if T.isGround(px, pz) and d < bestDist then
+                bestX, bestZ, bestDist = px, pz, d
+            end
+        end
+        if bestX then
+            return bestX, bestZ
+        end
+    end
+    local total = distance(x, z, fromX, fromZ)
+    for d = 100, total, 100 do
+        local t = d / total
+        local px, pz = x + (fromX - x) * t, z + (fromZ - z) * t
+        if T.isGround(px, pz) then
+            return px, pz
+        end
+    end
+    return nil
+end
+
+-- Whether the straight line between two points stays on land.
+function T.clearPath(x1, z1, x2, z2)
+    local total = distance(x1, z1, x2, z2)
+    for d = 200, total - 1, 200 do
+        local t = d / total
+        if not T.isGround(x1 + (x2 - x1) * t, z1 + (z2 - z1) * t) then
+            return false
+        end
+    end
+    return true
+end
+
 function T.isRoad(x, z)
     return land.getSurfaceType({ x = x, y = z }) == land.SurfaceType.ROAD
 end
@@ -491,6 +534,16 @@ function FLD.routeTo(name, x, z, speed, action)
     local fromX, fromZ = FLD.groupPosition(name)
     if not group or not fromX then
         return false
+    end
+    -- Never drive into the sea: destinations computed by heading and
+    -- distance can fall in water near a coast.
+    x, z = T.nearestGround(x, z, fromX, fromZ)
+    if not x then
+        return false
+    end
+    if not T.clearPath(fromX, fromZ, x, z) then
+        -- Water in the way: let DCS find the way round by road.
+        action = "On Road"
     end
     local mission = {
         id = "Mission",

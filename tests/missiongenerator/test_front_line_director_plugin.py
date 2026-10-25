@@ -47,7 +47,10 @@ env = {info = function() end, error = function(m) error(m) end}
 land = {
     SurfaceType = SURF,
     getHeight = function(p) return hillHeight(p.x, p.y) end,
-    getSurfaceType = function(p) return SURF.LAND end,
+    getSurfaceType = function(p)
+        if seaFn and seaFn(p.x, p.y) then return SURF.WATER end
+        return SURF.LAND
+    end,
     isVisible = function(a, b) return visibleFn(a, b) end,
     getClosestPointOnRoads = function(kind, x, z)
         if roadZ then return x, roadZ end
@@ -1234,3 +1237,30 @@ def test_enemy_still_fighting_is_not_pursued(lua: Any) -> None:
     # The red reserve still stands: one bound to the next hill.
     x, _ = lua.eval("lastDestination('blue-tank')")
     assert 3000 < x < 10000
+
+
+def test_units_never_drive_into_the_sea(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    # Sea north of x = 4000.
+    lua.execute("seaFn = function(x, z) return x > 4000 end")
+    lua.execute("FLD.routeTo('blue-tank', 8000, 0, 12)")
+    x, z = lua.eval("lastDestination('blue-tank')")
+    assert x <= 4000
+    assert abs(z) < 2100
+
+
+def test_route_across_a_bay_goes_by_road(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    # A bay between the tank and its destination.
+    lua.execute("seaFn = function(x, z) return x > -2000 and x < -1000 and z < 500 end")
+    lua.execute("FLD.routeTo('blue-tank', 0, 0, 12)")
+    task = lua.eval("lastTask('blue-tank')")
+    assert task.params.route.points[2].action == "On Road"
+    assert lua.eval("lastDestination('blue-tank')") == (0, 0)
+
+
+def test_route_over_land_stays_off_road(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("FLD.routeTo('blue-tank', 0, 0, 12)")
+    task = lua.eval("lastTask('blue-tank')")
+    assert task.params.route.points[2].action == "Off Road"
