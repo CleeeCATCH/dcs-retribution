@@ -1,6 +1,6 @@
 {
     "nameInUI": "Front line director",
-    "descriptionInUI": "Plans front lines in sectors with objectives and runs them live during the mission: terrain-aware battle positions, reserve task forces that counter-attack or follow up a breakthrough, attackers that push into gaps and seek out the enemy, idle units always given something to do, broken units falling back to cover, breakthroughs exploited toward the enemy base, ambushes, smarter front line artillery deployed on flat open ground, pop-up events and taskings using each side's real spare units, and wrecks that burn where they were destroyed.",
+    "descriptionInUI": "Plans front lines in sectors with objectives and runs them live during the mission: terrain-aware battle positions, reserve task forces that counter-attack or follow up a breakthrough, attackers that push into gaps and seek out the enemy, air defence that keeps up with the front, idle units always given something to do, broken units falling back to cover, breakthroughs exploited toward the enemy base, ambushes, smarter front line artillery deployed on flat open ground, pop-up events and taskings using each side's real spare units, and wrecks that burn where they were destroyed.",
     "defaultValue": true,
     "specificOptions": [
         {

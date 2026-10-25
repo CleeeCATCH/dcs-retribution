@@ -19,6 +19,7 @@
 --     follows a breakthrough up with the reserve and sends attackers into
 --     gaps in the line; attackers out of contact go looking for the enemy and
 --     defenders counter-attack an attack that broke,
+--   * moves air defence with the groups it covers, a bit behind them,
 --   * keeps idle groups busy: attackers hunt the enemy or push on,
 --     support weapons follow them up, defenders shift to threatened sectors
 --     or push a screen forward,
@@ -80,6 +81,14 @@ FLD.config = {
     seekContactRange = 8000,
     -- How far idle defenders push a screen ahead of their objective.
     screenDistance = 1500,
+    -- Air defence follows the groups it covers this far behind them, never
+    -- closer than airDefenceEnemyDistance to the enemy. It bounds forward
+    -- when its position is airDefenceMoveDistance off, at most once per
+    -- airDefenceMoveCooldown seconds, so it spends most of its time ready.
+    airDefenceStandoff = 1500,
+    airDefenceEnemyDistance = 2500,
+    airDefenceMoveDistance = 1000,
+    airDefenceMoveCooldown = 120,
     -- Artillery firing positions: searched this far around the battery, at
     -- most this steep (rise over run), and preferably this close to a road,
     -- where no trees cover the guns.
@@ -1221,6 +1230,60 @@ function FLD.keepBusy(front, sideName, now)
     end
 end
 
+-- The center of the friendly maneuver groups an air defence group covers:
+-- those of its sector, or of the whole front when its sector has none.
+local function coveredForce(front, group)
+    for _, wholeFront in ipairs({ false, true }) do
+        local sx, sz, n = 0, 0, 0
+        for _, other in ipairs(front.groups) do
+            if other.side == group.side and MANEUVER_ROLES[other.role]
+                and other.state ~= "DEAD" and other.state ~= "RESERVE" and other.state ~= "WITHDRAWN"
+                and (wholeFront or other.sector == group.sector) then
+                local x, z = FLD.groupPosition(other.name)
+                if x then
+                    sx, sz, n = sx + x, sz + z, n + 1
+                end
+            end
+        end
+        if n > 0 then
+            return sx / n, sz / n
+        end
+    end
+    return nil
+end
+
+-- Air defence keeps up with the front: a bit behind the groups it covers,
+-- out of reach of the enemy's direct fire, on ground that sees the sky
+-- over the battle.
+function FLD.coverAirDefence(front, sideName, now)
+    local side = front.sides[sideName]
+    local slots = {}
+    for _, group in ipairs(front.groups) do
+        if group.side == sideName and group.role == "SHORAD" and groupStrength(group) > 0
+            and now >= (group.airDefenceMoveAt or 0) then
+            local x, z = FLD.groupPosition(group.name)
+            local cx, cz = coveredForce(front, group)
+            if x and cx then
+                local tx, tz = T.offset(cx, cz, side.heading + 180, FLD.config.airDefenceStandoff)
+                tx, tz = T.offset(tx, tz, side.heading + 90, lateralSlot(slots, group.sector or 0))
+                for _ = 1, 3 do
+                    if not enemyNear(front, sideName, tx, tz, FLD.config.airDefenceEnemyDistance) then
+                        break
+                    end
+                    tx, tz = T.offset(tx, tz, side.heading + 180, 1000)
+                end
+                if distance(x, z, tx, tz) >= FLD.config.airDefenceMoveDistance then
+                    local px, pz = T.findPosition(tx, tz, side.heading, "overwatch")
+                    if FLD.routeTo(group.name, px, pz, SPEED_REPOSITION) then
+                        group.airDefenceMoveAt = now + FLD.config.airDefenceMoveCooldown
+                        debug(group.name .. " bounds to keep up with the front")
+                    end
+                end
+            end
+        end
+    end
+end
+
 function FLD.exploit(front, sideName)
     local side = front.sides[sideName]
     local offensive = OFFENSIVE_STANCES[side.stance]
@@ -1522,6 +1585,7 @@ function FLD.decide(front, sideName, now)
     FLD.continueExploitation(front, sideName)
     FLD.exploit(front, sideName)
     FLD.keepBusy(front, sideName, now)
+    FLD.coverAirDefence(front, sideName, now)
 end
 
 function FLD.tickFront(front, now)

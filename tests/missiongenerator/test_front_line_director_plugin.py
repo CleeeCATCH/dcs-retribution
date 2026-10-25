@@ -1065,3 +1065,55 @@ def test_quiet_defenders_push_a_screen_forward_once(lua: Any) -> None:
     tasks = lua.eval("#mockGroups['blue-tank'].tasks")
     lua.execute("FLD.tickFront(FLD.frontLines[1], 500)")
     assert lua.eval("#mockGroups['blue-tank'].tasks") == tasks
+
+
+def start_with_air_defence(lua: Any, x: float, z: float) -> None:
+    lua.execute(f"""
+        spawn("blue-tank", -3000, 0, 4)
+        spawn("blue-reserve", -6000, 0, 4)
+        spawn("red-tank", 3000, 0, 4)
+        spawn("red-reserve", 6000, 0, 4)
+        spawn("blue-sam", {x}, {z}, 1)
+        FLD.start(plan('AGGRESSIVE', 'DEFENSIVE', {{
+            {{name = "blue-sam", side = "blue", role = "SHORAD", sector = "1", reserve = "false"}},
+        }}))
+    """)
+
+
+def test_air_defence_in_position_stays(lua: Any) -> None:
+    start_with_air_defence(lua, -4500, 0)
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    assert lua.eval("lastDestination('blue-sam')") is None
+
+
+def test_air_defence_follows_the_advance_a_bit_behind(lua: Any) -> None:
+    start_with_air_defence(lua, -4500, 0)
+    lua.execute("moveTo('red-tank', 12000, 0)")
+    lua.execute("moveTo('red-reserve', 12000, 0)")
+    lua.execute("moveTo('blue-tank', 4000, 0)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    x, _ = lua.eval("lastDestination('blue-sam')")
+    # Behind the tanks, but well forward of where it was.
+    assert 1000 < x < 4000
+
+
+def test_air_defence_keeps_away_from_the_enemy(lua: Any) -> None:
+    start_with_air_defence(lua, -8000, 0)
+    lua.execute("moveTo('blue-tank', 2000, 0)")
+    lua.execute("moveTo('red-tank', 1500, 0)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    x, _ = lua.eval("lastDestination('blue-sam')")
+    assert x < 1500 - 2500 + 800
+
+
+def test_air_defence_bounds_rather_than_moving_constantly(lua: Any) -> None:
+    start_with_air_defence(lua, -4500, 0)
+    lua.execute("moveTo('red-tank', 12000, 0)")
+    lua.execute("moveTo('red-reserve', 12000, 0)")
+    lua.execute("moveTo('blue-tank', 4000, 0)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("moveTo('blue-tank', 7000, 0)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    assert lua.eval("#mockGroups['blue-sam'].tasks") == 1
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 160)")
+    assert lua.eval("#mockGroups['blue-sam'].tasks") == 2
