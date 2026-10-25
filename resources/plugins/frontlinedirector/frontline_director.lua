@@ -58,6 +58,10 @@ FLD.config = {
     exploitDistance = 4000,
     -- The enemy base is the exploitation target when it is this close.
     exploitBaseDistance = 15000,
+    -- An exploiting group this close to its target pushes on to the next one.
+    exploitArrivalDistance = 600,
+    -- Exploiting groups stop to fight enemies this close before pushing on.
+    exploitContactDistance = 3000,
     -- A friendly sector below this strength share asks for reinforcement.
     reinforceStrength = 0.5,
     -- Group strength share at which a group breaks, randomized in this range.
@@ -797,7 +801,7 @@ function FLD.consolidate(front, sideName)
 end
 
 -- How urgently a sector needs the reserve. 0 means it does not.
-function FLD.sectorNeed(sector, sideName)
+function FLD.sectorNeed(sector, sideName, stance)
     local enemy = OTHER_SIDE[sideName]
     if sector.holder == enemy and not sector.contested then
         return 3
@@ -809,6 +813,11 @@ function FLD.sectorNeed(sector, sideName)
         and sector.current[enemy] > 0 then
         return 1
     end
+    -- A gap in the line: nobody fights for this objective. Attackers seize it.
+    if OFFENSIVE_STANCES[stance] and sector.holder ~= sideName
+        and sector.current[sideName] == 0 and sector.current[enemy] == 0 then
+        return 0.5
+    end
     return 0
 end
 
@@ -819,8 +828,8 @@ function FLD.commitReserves(front, sideName, now)
     end
     local best, bestNeed = nil, 0
     for _, sector in ipairs(front.sectors) do
-        local need = FLD.sectorNeed(sector, sideName)
-        if side.mainEffort == sector.index and need > 0 then
+        local need = FLD.sectorNeed(sector, sideName, side.stance)
+        if side.mainEffort == sector.index and need >= 1 then
             need = need + 0.5
         end
         if need > bestNeed then
@@ -848,12 +857,13 @@ function FLD.commitReserves(front, sideName, now)
     end)
 
     local counterAttack = bestNeed >= 2
+    local seize = bestNeed < 1
     local committed = 0
     for i = 1, math.min(FLD.config.taskForceSize, #reserves) do
         local group = reserves[i].group
         group.sector = best.index
         best.initial[sideName] = best.initial[sideName] + group.initialSize
-        if counterAttack then
+        if counterAttack or seize then
             FLD.setFireAtWill(group.name, true)
             FLD.routeTo(group.name, best.objX, best.objZ, SPEED_ASSAULT)
             group.state = "COUNTER"
@@ -865,7 +875,10 @@ function FLD.commitReserves(front, sideName, now)
         committed = committed + 1
     end
     side.lastCommit = now
-    if counterAttack then
+    if seize then
+        say(sideName, string.format("%s: reserve task force (%d groups) advancing into the gap at %s.",
+            front.name, committed, best.label))
+    elseif counterAttack then
         say(sideName, string.format("%s: reserve task force (%d groups) committed to counter-attack %s.",
             front.name, committed, best.label))
     else
@@ -874,15 +887,54 @@ function FLD.commitReserves(front, sideName, now)
     end
 end
 
-function FLD.exploitationTarget(front, sideName, sector)
+-- The next exploitation target pushing on from a point: the next high
+-- ground toward the enemy, or the enemy base once it is close.
+function FLD.exploitationTarget(front, sideName, fromX, fromZ)
     local side = front.sides[sideName]
-    if side.enemyBaseX and distance(sector.objX, sector.objZ, side.enemyBaseX, side.enemyBaseZ)
+    if side.enemyBaseX and distance(fromX, fromZ, side.enemyBaseX, side.enemyBaseZ)
         <= FLD.config.exploitBaseDistance then
         return side.enemyBaseX, side.enemyBaseZ, "the enemy base"
     end
-    local x, z = T.offset(sector.objX, sector.objZ, side.heading, FLD.config.exploitDistance)
+    local x, z = T.offset(fromX, fromZ, side.heading, FLD.config.exploitDistance)
     local keyX, keyZ, keyH = T.findKeyTerrain(x, z, FLD.config.keyTerrainRadius)
     return keyX, keyZ, string.format("Hill %d", math.floor(keyH + 0.5))
+end
+
+local function enemyNear(front, sideName, x, z, radius)
+    local enemy = OTHER_SIDE[sideName]
+    for _, group in ipairs(front.groups) do
+        if group.side == enemy and MANEUVER_ROLES[group.role] and group.state ~= "DEAD"
+            and group.state ~= "WITHDRAWN" then
+            for _, unit in ipairs(FLD.aliveUnits(group.name)) do
+                local p = unit:getPoint()
+                if distance(p.x, p.z, x, z) <= radius then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Exploiting groups that reached their target keep pushing toward the enemy
+-- base as long as nothing stands in their way.
+function FLD.continueExploitation(front, sideName)
+    for _, group in ipairs(front.groups) do
+        if group.side == sideName and group.state == "EXPLOITING" and group.exploitX
+            and not group.exploitBase then
+            local x, z = FLD.groupPosition(group.name)
+            if x and distance(x, z, group.exploitX, group.exploitZ) <= FLD.config.exploitArrivalDistance
+                and not enemyNear(front, sideName, x, z, FLD.config.exploitContactDistance) then
+                local tx, tz, targetName = FLD.exploitationTarget(front, sideName, x, z)
+                if FLD.routeTo(group.name, tx, tz, SPEED_ASSAULT) then
+                    group.exploitX, group.exploitZ = tx, tz
+                    group.exploitBase = targetName == "the enemy base"
+                    say(sideName, string.format("%s: %s meets no resistance, pushing on toward %s.",
+                        front.name, group.name, targetName))
+                end
+            end
+        end
+    end
 end
 
 function FLD.exploit(front, sideName)
@@ -892,17 +944,20 @@ function FLD.exploit(front, sideName)
     end
     local enemy = OTHER_SIDE[sideName]
     for _, sector in ipairs(front.sectors) do
+        -- Gaps the enemy never defended have no enemy strength and are
+        -- exploited as soon as we hold them.
         if not side.exploited[sector.index] and sideHolding(sector) == sideName
-            and sector.initial[enemy] > 0
             and strengthShare(sector, enemy) <= FLD.config.exploitEnemyStrength
             and strengthShare(sector, sideName) >= FLD.config.exploitFriendlyStrength then
-            local x, z, targetName = FLD.exploitationTarget(front, sideName, sector)
+            local x, z, targetName = FLD.exploitationTarget(front, sideName, sector.objX, sector.objZ)
             local count = 0
             for _, group in ipairs(front.groups) do
                 if group.side == sideName and group.sector == sector.index and ASSAULT_ROLES[group.role]
                     and (group.state == "HOLDING" or group.state == "IDLE" or group.state == "COUNTER") then
                     if FLD.routeTo(group.name, x, z, SPEED_ASSAULT) then
                         group.state = "EXPLOITING"
+                        group.exploitX, group.exploitZ = x, z
+                        group.exploitBase = targetName == "the enemy base"
                         count = count + 1
                     end
                 end
@@ -1165,6 +1220,7 @@ function FLD.decide(front, sideName, now)
     FLD.withdrawBroken(front, sideName)
     FLD.consolidate(front, sideName)
     FLD.commitReserves(front, sideName, now)
+    FLD.continueExploitation(front, sideName)
     FLD.exploit(front, sideName)
 end
 

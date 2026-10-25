@@ -272,21 +272,21 @@ class MissionResultsProcessor:
                                 delta = DEFEAT_INFLUENCE
                                 status_msg = f"Enemy casualties outnumber allied casualties along the {cp.name}-{enemy_cp.name} frontline.  Allied forces claim a victory."
                     elif ally_casualties > enemy_casualties:
+                        # Even with casualties if the enemy is overwhelmed, they are going to lose ground
                         if (
-                            ally_units_alive > 2 * enemy_units_alive
-                            and player_aggresive
-                        ):
-                            # Even with casualties if the enemy is overwhelmed, they are going to lose ground
-                            player_won = True
-                            delta = MINOR_DEFEAT_INFLUENCE
-                            status_msg = f"Despite suffering losses, allied forces still outnumber enemy forces along the {cp.name}-{enemy_cp.name} frontline.  Due to allied force's aggressive posture, allied forces claim a minor victory."
-                        elif (
                             ally_units_alive > 3 * enemy_units_alive
                             and player_aggresive
                         ):
                             player_won = True
                             delta = STRONG_DEFEAT_INFLUENCE
                             status_msg = f"Despite suffering losses, allied forces still heavily outnumber enemy forces along the {cp.name}-{enemy_cp.name} frontline.  Due to allied force's aggressive posture, allied forces claim a major victory."
+                        elif (
+                            ally_units_alive > 2 * enemy_units_alive
+                            and player_aggresive
+                        ):
+                            player_won = True
+                            delta = MINOR_DEFEAT_INFLUENCE
+                            status_msg = f"Despite suffering losses, allied forces still outnumber enemy forces along the {cp.name}-{enemy_cp.name} frontline.  Due to allied force's aggressive posture, allied forces claim a minor victory."
                         else:
                             # But if the enemy is not outnumbered, we lose
                             player_won = False
@@ -296,6 +296,29 @@ class MissionResultsProcessor:
                             else:
                                 delta = DEFEAT_INFLUENCE
                                 status_msg = f"Allied casualties outnumber enemy casualties along the {cp.name}-{enemy_cp.name} frontline.  Allied forces suffer a defeat."
+                    else:
+                        # Even casualties, often none at all because the sides
+                        # never met: an attacker that heavily outnumbers the
+                        # enemy still moves into the gaps in its line.
+                        enemy_aggressive = enemy_cp.stances.get(cp.id) in [
+                            CombatStance.AGGRESSIVE,
+                            CombatStance.ELIMINATION,
+                            CombatStance.BREAKTHROUGH,
+                        ]
+                        if (
+                            player_aggresive
+                            and ally_units_alive > 2 * enemy_units_alive
+                        ):
+                            player_won = True
+                            delta = MINOR_DEFEAT_INFLUENCE
+                            status_msg = f"Allied forces outnumber enemy forces along the {cp.name}-{enemy_cp.name} frontline and advance into the gaps in their line.  Allied forces win a minor victory."
+                        elif (
+                            enemy_aggressive
+                            and enemy_units_alive > 2 * ally_units_alive
+                        ):
+                            player_won = False
+                            delta = MINOR_DEFEAT_INFLUENCE
+                            status_msg = f"Enemy forces outnumber allied forces along the {cp.name}-{enemy_cp.name} frontline and advance into the gaps in our line.  Allied forces suffer a minor defeat."
 
                     # No progress with defensive strategies
                     if player_won and cp.stances[enemy_cp.id] in [

@@ -300,6 +300,82 @@ def test_collapsed_sector_is_exploited(lua: Any) -> None:
     assert x > 3000
 
 
+def test_undefended_sector_is_exploited(lua: Any) -> None:
+    # Red keeps nothing in the sector: a gap blue drives through.
+    lua.execute("""
+        spawn("blue-tank", 1000, 0, 4)
+        spawn("blue-reserve", -6000, 0, 4)
+        spawn("red-tank", 3000, 0, 4)
+        spawn("red-reserve", 6000, 0, 4)
+        local data = plan('AGGRESSIVE', 'DEFENSIVE')
+        data.frontLines[1].groups[3].reserve = "true"
+        FLD.start(data)
+    """)
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+
+    assert lua.eval("groupState('blue-tank')") == "EXPLOITING"
+    x, _ = lua.eval("lastDestination('blue-tank')")
+    assert x > 3000
+
+
+def test_exploitation_keeps_pushing_without_resistance(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("moveTo('blue-tank', 1000, 0)")
+    lua.execute("kill('red-tank', 4)")
+    lua.execute("kill('red-reserve', 4)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    first_x, first_z = lua.eval("lastDestination('blue-tank')")
+
+    # Not there yet: no new orders.
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 90)")
+    assert lua.eval("lastDestination('blue-tank')") == (first_x, first_z)
+
+    lua.execute(f"moveTo('blue-tank', {first_x}, {first_z})")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 120)")
+    x, _ = lua.eval("lastDestination('blue-tank')")
+    assert x > first_x + 2000
+    assert lua.eval("groupState('blue-tank')") == "EXPLOITING"
+    assert lua.eval("said('meets no resistance, pushing on toward')")
+
+
+def test_exploitation_stops_at_enemy_contact(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("moveTo('blue-tank', 1000, 0)")
+    lua.execute("kill('red-tank', 4)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    first = lua.eval("lastDestination('blue-tank')")
+
+    # The red reserve still waits near the exploitation target.
+    lua.execute(f"moveTo('blue-tank', {first[0]}, {first[1]})")
+    lua.execute(f"moveTo('red-reserve', {first[0] + 1000}, {first[1]})")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 120)")
+    assert lua.eval("lastDestination('blue-tank')") == first
+
+
+def test_attacker_reserve_advances_into_a_gap(lua: Any) -> None:
+    # Two sectors, nobody committed to the second one.
+    lua.execute("""
+        spawn("blue-tank", -3000, 0, 4)
+        spawn("blue-reserve", -6000, 0, 4)
+        spawn("red-tank", 3000, 0, 4)
+        spawn("red-reserve", 6000, 0, 4)
+        local data = plan('AGGRESSIVE', 'DEFENSIVE')
+        table.insert(data.frontLines[1].sectors, {x = "0", z = "10000", width = "6000"})
+        FLD.start(data)
+    """)
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+
+    assert lua.eval("groupState('blue-reserve')") == "COUNTER"
+    assert lua.eval("said('advancing into the gap at OBJ BRAVO')")
+    _, z = lua.eval("lastDestination('blue-reserve')")
+    assert z == pytest.approx(lua.eval("FLD.frontLines[1].sectors[2].objZ"))
+    # Defenders keep their reserve back.
+    assert lua.eval("groupState('red-reserve')") == "RESERVE"
+
+
 def test_defensive_side_does_not_exploit(lua: Any) -> None:
     lua.execute("setupBattle('DEFENSIVE', 'AGGRESSIVE')")
     lua.execute("moveTo('blue-tank', 1000, 0)")

@@ -16,8 +16,10 @@ from typing import Any, Callable, cast
 from unittest.mock import MagicMock
 
 from game.debriefing import Debriefing, GroundLosses
+from game.ground_forces.combat_stance import CombatStance
 from game.sim.missionresultsprocessor import MissionResultsProcessor
 from game.theater import ControlPoint
+from game.theater.base import Base
 
 #: The complete set of sub-steps ``MissionResultsProcessor.commit`` invokes, in
 #: no particular order. ``_record_steps`` stubs *every* processor method, so this
@@ -100,3 +102,69 @@ def test_battle_impact_scored_before_captures_flip_ownership() -> None:
     assert calls.index("commit_front_line_battle_impact") < calls.index(
         "commit_captures"
     ), "front-line scoring must run before bases are captured"
+
+
+def _score_front_line(
+    blue_stance: CombatStance,
+    red_stance: CombatStance,
+    blue_armor: int,
+    red_armor: int,
+    blue_casualties: int = 0,
+    red_casualties: int = 0,
+) -> tuple[float, float]:
+    """Scores one front line battle, returns the blue and red base strengths."""
+    blue_cp = MagicMock()
+    red_cp = MagicMock()
+    red_cp.captured.is_red = True
+    blue_cp.connected_points = [red_cp]
+    blue_cp.stances = {red_cp.id: blue_stance}
+    red_cp.stances = {blue_cp.id: red_stance}
+    for cp, armor in ((blue_cp, blue_armor), (red_cp, red_armor)):
+        cp.base = Base()
+        cp.base.strength = 0.5
+        cp.base.armor = {cast(Any, MagicMock()): armor}
+    game = MagicMock()
+    game.theater.player_points.return_value = [blue_cp]
+    debriefing = MagicMock()
+    debriefing.casualty_count.side_effect = lambda cp: (
+        blue_casualties if cp is blue_cp else red_casualties
+    )
+
+    MissionResultsProcessor(game).commit_front_line_battle_impact(
+        debriefing, MagicMock()
+    )
+    return blue_cp.base.strength, red_cp.base.strength
+
+
+def test_outnumbering_attacker_advances_without_contact() -> None:
+    """An attacker that never meets the enemy still moves into the gaps."""
+    blue, red = _score_front_line(
+        CombatStance.AGGRESSIVE, CombatStance.DEFENSIVE, 30, 10
+    )
+    assert blue > 0.5 > red
+
+
+def test_outnumbering_enemy_attacker_advances_without_contact() -> None:
+    blue, red = _score_front_line(
+        CombatStance.DEFENSIVE, CombatStance.BREAKTHROUGH, 10, 30
+    )
+    assert red > 0.5 > blue
+
+
+def test_even_forces_without_contact_hold_the_line() -> None:
+    blue, red = _score_front_line(
+        CombatStance.AGGRESSIVE, CombatStance.AGGRESSIVE, 20, 15
+    )
+    assert blue == red == 0.5
+
+
+def test_heavily_outnumbering_attacker_wins_despite_losses() -> None:
+    blue, red = _score_front_line(
+        CombatStance.AGGRESSIVE,
+        CombatStance.DEFENSIVE,
+        40,
+        10,
+        blue_casualties=5,
+        red_casualties=2,
+    )
+    assert (blue, red) == (1.0, 0.0)
