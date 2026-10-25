@@ -144,10 +144,13 @@ function addPlayer(side, x, alt, z)
     })
 end
 
-function deadUnit(x, z, armored, category)
+function deadUnit(x, z, armored, category, infantry)
     return {
         getDesc = function() return {category = category or Unit.Category.GROUND_UNIT} end,
-        hasAttribute = function(_, attribute) return armored and attribute == "Armored vehicles" end,
+        hasAttribute = function(_, attribute)
+            if attribute == "Infantry" then return infantry == true end
+            return armored and attribute == "Armored vehicles"
+        end,
         getName = function() return string.format("wreck %d %d", x, z) end,
         getPoint = function() return {x = x, y = 0, z = z} end,
     }
@@ -1189,3 +1192,11 @@ def test_one_group_in_contact_holds_the_task_force(lua: Any) -> None:
     for t in (30, 120, 240, 330):
         lua.execute(f"FLD.tickFront(FLD.frontLines[1], {t})")
     assert lua.eval("groupState('blue-tank')") == "HOLDING"
+
+
+def test_dead_infantry_leaves_no_smoke(events: Any) -> None:
+    events.execute("setupEvents({})")
+    events.execute("FLD.onUnitDestroyed(deadUnit(500, 0, false, nil, true), 100)")
+    assert events.eval("effectCount()") == 0
+    events.execute("FLD.onUnitDestroyed(deadUnit(600, 0, false), 100)")
+    assert events.eval("effectCount()") == 1

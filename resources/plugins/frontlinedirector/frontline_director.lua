@@ -2237,6 +2237,10 @@ function FLD.onUnitDestroyed(unit, now)
         if not desc or desc.category ~= Unit.Category.GROUND_UNIT then
             return
         end
+        -- Soldiers leave no burning wreck.
+        if unit:hasAttribute("Infantry") then
+            return
+        end
         local armored = unit:hasAttribute("Armored vehicles") or unit:hasAttribute("Tanks")
         FLD.burnWreck(unit:getName(), unit:getPoint(), armored, now)
     end)
