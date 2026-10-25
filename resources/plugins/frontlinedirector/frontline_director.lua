@@ -19,6 +19,7 @@
 --     follows a breakthrough up with the reserve and sends attackers into
 --     gaps in the line; attackers out of contact go looking for the enemy and
 --     defenders counter-attack an attack that broke,
+--   * pursues an enemy falling back all the way to its base in one push,
 --   * moves air defence with the groups it covers, a bit behind them,
 --   * moves the groups of a sector as one task force: it waits for its
 --     stragglers before bounding on and keeps busy when idle: attackers
@@ -1057,12 +1058,32 @@ function FLD.commitReserves(front, sideName, now)
     end
 end
 
+-- Whether the enemy is falling back: retreating, or every enemy group still
+-- fighting on this front has broken and pulled back.
+function FLD.enemyFallingBack(front, sideName)
+    local enemy = OTHER_SIDE[sideName]
+    if front.sides[enemy].stance == "RETREAT" then
+        return true
+    end
+    local any = false
+    for _, group in ipairs(front.groups) do
+        if group.side == enemy and MANEUVER_ROLES[group.role] and group.state ~= "DEAD" then
+            if group.state ~= "WITHDRAWN" then
+                return false
+            end
+            any = true
+        end
+    end
+    return any
+end
+
 -- The next exploitation target pushing on from a point: the next high
--- ground toward the enemy, or the enemy base once it is close.
+-- ground toward the enemy, or the enemy base once it is close. An enemy
+-- falling back is pursued all the way to its base in one push.
 function FLD.exploitationTarget(front, sideName, fromX, fromZ)
     local side = front.sides[sideName]
-    if side.enemyBaseX and distance(fromX, fromZ, side.enemyBaseX, side.enemyBaseZ)
-        <= FLD.config.exploitBaseDistance then
+    if side.enemyBaseX and (FLD.enemyFallingBack(front, sideName)
+        or distance(fromX, fromZ, side.enemyBaseX, side.enemyBaseZ) <= FLD.config.exploitBaseDistance) then
         return side.enemyBaseX, side.enemyBaseZ, "the enemy base"
     end
     local x, z = T.offset(fromX, fromZ, side.heading, FLD.config.exploitDistance)

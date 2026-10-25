@@ -1200,3 +1200,37 @@ def test_dead_infantry_leaves_no_smoke(events: Any) -> None:
     assert events.eval("effectCount()") == 0
     events.execute("FLD.onUnitDestroyed(deadUnit(600, 0, false), 100)")
     assert events.eval("effectCount()") == 1
+
+
+def test_retreating_enemy_is_pursued_to_its_base(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'RETREAT')")
+    lua.execute("moveTo('blue-tank', 1000, 0)")
+    lua.execute("kill('red-tank', 4)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    assert lua.eval("groupState('blue-tank')") == "EXPLOITING"
+    assert lua.eval("lastDestination('blue-tank')") == (30000, 0)
+    assert lua.eval("said('exploiting toward the enemy base')")
+
+
+def test_broken_enemy_is_pursued_to_its_base(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("moveTo('blue-tank', 1000, 0)")
+    # Every red group broke and fell back: no more bounds, straight on.
+    lua.execute("FLD.frontLines[1].groups[3].state = 'WITHDRAWN'")
+    lua.execute("FLD.frontLines[1].groups[4].state = 'WITHDRAWN'")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    assert lua.eval("groupState('blue-tank')") == "EXPLOITING"
+    assert lua.eval("lastDestination('blue-tank')") == (30000, 0)
+
+
+def test_enemy_still_fighting_is_not_pursued(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("moveTo('blue-tank', 1000, 0)")
+    lua.execute("kill('red-tank', 4)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    # The red reserve still stands: one bound to the next hill.
+    x, _ = lua.eval("lastDestination('blue-tank')")
+    assert 3000 < x < 10000
