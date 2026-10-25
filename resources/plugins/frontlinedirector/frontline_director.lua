@@ -20,6 +20,8 @@
 --     gaps in the line; attackers out of contact go looking for the enemy and
 --     defenders counter-attack an attack that broke,
 --   * pursues an enemy falling back all the way to its base in one push,
+--   * assaults the enemy base: attackers close to it hunt down every enemy
+--     ground unit in its capture zone, then move in to take it,
 --   * moves air defence with the groups it covers, a bit behind them,
 --   * moves the groups of a sector as one task force: it waits for its
 --     stragglers before bounding on and keeps busy when idle: attackers
@@ -84,6 +86,11 @@ FLD.config = {
     seekContactRange = 8000,
     -- How far idle defenders push a screen ahead of their objective.
     screenDistance = 1500,
+    -- Radius of a base's capture zone (TRIGGER_RADIUS_CAPTURE in Retribution):
+    -- the base falls when none of the defender's ground units are inside it.
+    captureRadius = 3000,
+    -- Attackers this far outside the capture zone start the base assault.
+    baseApproachDistance = 3000,
     -- Seconds an exploiting task force waits for its stragglers before the
     -- groups that arrived push on to the next bound.
     regroupSeconds = 120,
@@ -1464,6 +1471,110 @@ function FLD.coverAirDefence(front, sideName, now)
     end
 end
 
+-- Enemy ground units in the capture zone of the enemy base: as long as one
+-- is alive there, the base cannot be captured.
+function FLD.baseDefenders(sideName, bx, bz)
+    local defenders = {}
+    if not (world.searchObjects and world.VolumeType and Object and Object.Category) then
+        return defenders
+    end
+    local enemyCoalition = coalitionOf(OTHER_SIDE[sideName])
+    local volume = {
+        id = world.VolumeType.SPHERE,
+        params = { point = { x = bx, y = T.height(bx, bz), z = bz }, radius = FLD.config.captureRadius },
+    }
+    pcall(world.searchObjects, Object.Category.UNIT, volume, function(unit)
+        local ok = pcall(function()
+            local desc = unit:getDesc()
+            if unit:isExist() and unit:getLife() >= 1 and unit:getCoalition() == enemyCoalition
+                and desc and desc.category == Unit.Category.GROUND_UNIT then
+                local p = unit:getPoint()
+                if distance(p.x, p.z, bx, bz) <= FLD.config.captureRadius then
+                    table.insert(defenders, { name = unit:getName(), x = p.x, z = p.z, assigned = 0 })
+                end
+            end
+        end)
+        return true
+    end)
+    return defenders
+end
+
+-- The base assault. Attackers closing on the enemy base hunt down every
+-- enemy ground unit in its capture zone, spread over them, and once the
+-- zone is clear drive into it so the base falls.
+function FLD.assaultBase(front, sideName)
+    local side = front.sides[sideName]
+    if not OFFENSIVE_STANCES[side.stance] or not side.enemyBaseX then
+        return
+    end
+    local bx, bz = side.enemyBaseX, side.enemyBaseZ
+    local attackers = {}
+    for _, group in ipairs(front.groups) do
+        if group.side == sideName and ASSAULT_ROLES[group.role] and group.state ~= "DEAD"
+            and group.state ~= "WITHDRAWN" and group.state ~= "RESERVE" then
+            local x, z = FLD.groupPosition(group.name)
+            if x and distance(x, z, bx, bz) <= FLD.config.captureRadius + FLD.config.baseApproachDistance then
+                table.insert(attackers, { group = group, x = x, z = z })
+            end
+        end
+    end
+    if #attackers == 0 then
+        return
+    end
+
+    local defenders = FLD.baseDefenders(sideName, bx, bz)
+    if #defenders == 0 then
+        for _, a in ipairs(attackers) do
+            if a.group.state ~= "CAPTURING" and FLD.routeTo(a.group.name, bx, bz, SPEED_ASSAULT) then
+                a.group.state = "CAPTURING"
+                a.group.clearTarget = nil
+            end
+        end
+        if not side.baseCleared then
+            side.baseCleared = true
+            say(sideName, string.format("%s: enemy base defences cleared, moving in to take the base.", front.name))
+        end
+        return
+    end
+    side.baseCleared = false
+
+    if not side.baseAssaultAnnounced then
+        side.baseAssaultAnnounced = true
+        say(sideName, string.format("%s: assaulting the enemy base, %d defending units to clear.",
+            front.name, #defenders))
+    end
+    -- Keep each attacker on its target while it lives, then spread the rest
+    -- over the remaining defenders.
+    local byName = {}
+    for _, d in ipairs(defenders) do
+        byName[d.name] = d
+    end
+    local free = {}
+    for _, a in ipairs(attackers) do
+        local current = a.group.state == "CLEARING" and byName[a.group.clearTarget or ""]
+        if current then
+            current.assigned = current.assigned + 1
+        else
+            table.insert(free, a)
+        end
+    end
+    for _, a in ipairs(free) do
+        local best, bestScore = nil, math.huge
+        for _, d in ipairs(defenders) do
+            local score = distance(a.x, a.z, d.x, d.z) + d.assigned * 1500
+            if score < bestScore then
+                best, bestScore = d, score
+            end
+        end
+        if FLD.routeTo(a.group.name, best.x, best.z, SPEED_ASSAULT) then
+            FLD.setFireAtWill(a.group.name, true)
+            a.group.state = "CLEARING"
+            a.group.clearTarget = best.name
+            best.assigned = best.assigned + 1
+        end
+    end
+end
+
 function FLD.exploit(front, sideName)
     local side = front.sides[sideName]
     local offensive = OFFENSIVE_STANCES[side.stance]
@@ -1609,7 +1720,8 @@ function FLD.artilleryTargets(front, sideName, now)
             if x and FLD.isSpotted(front, sideName, x, z) then
                 local score = TARGET_PRIORITY[group.role] or 2
                 local kind = group.role == "SHORAD" and "air defence" or "armor"
-                if group.state == "COUNTER" or group.state == "EXPLOITING" or group.state == "ATTACKING" then
+                if group.state == "COUNTER" or group.state == "EXPLOITING" or group.state == "ATTACKING"
+                    or group.state == "CLEARING" then
                     score = math.max(score, 5)
                 end
                 for _, sector in ipairs(front.sectors) do
@@ -1766,6 +1878,7 @@ function FLD.decide(front, sideName, now)
     FLD.exploit(front, sideName)
     FLD.keepBusy(front, sideName, now)
     FLD.coverAirDefence(front, sideName, now)
+    FLD.assaultBase(front, sideName)
 end
 
 function FLD.tickFront(front, now)

@@ -68,6 +68,16 @@ world = {
     VolumeType = {SPHERE = 2},
     searchObjects = function(category, volume, handler)
         local p = volume.params.point
+        if category == Object.Category.UNIT then
+            for _, g in pairs(mockGroups) do
+                for _, u in ipairs(g.units) do
+                    if math.sqrt((u.x - p.x) ^ 2 + (u.z - p.z) ^ 2) <= volume.params.radius then
+                        handler(makeUnit(u))
+                    end
+                end
+            end
+            return
+        end
         for _, b in ipairs(buildings) do
             if math.sqrt((b.x - p.x) ^ 2 + (b.z - p.z) ^ 2) <= volume.params.radius then
                 handler()
@@ -75,7 +85,7 @@ world = {
         end
     end,
 }
-Object = {Category = {SCENERY = 5}}
+Object = {Category = {UNIT = 1, SCENERY = 5}}
 AI = {Option = {Ground = {
     id = {ROE = "roe", ALARM_STATE = "alarm"},
     val = {ROE = {OPEN_FIRE = "open", WEAPON_HOLD = "hold"}, ALARM_STATE = {RED = "red"}},
@@ -105,11 +115,14 @@ timer = {
     scheduleFunction = function(fn, arg, t) table.insert(scheduled, {fn = fn, arg = arg, t = t}) end,
 }
 
-local function makeUnit(u)
+function makeUnit(u)
     return {
         isExist = function() return u.life > 0 end,
         getLife = function() return u.life end,
         getPoint = function() return {x = u.x, y = 0, z = u.z} end,
+        getName = function() return u.name end,
+        getCoalition = function() return u.coalition end,
+        getDesc = function() return {category = Unit.Category.GROUND_UNIT} end,
     }
 end
 
@@ -135,7 +148,10 @@ end}
 
 function spawn(name, x, z, count)
     local units = {}
-    for i = 1, count do table.insert(units, {x = x, z = z + i * 10, life = 1}) end
+    local side = string.sub(name, 1, 4) == "red-" and 1 or 2
+    for i = 1, count do
+        table.insert(units, {x = x, z = z + i * 10, life = 1, name = name .. "-" .. i, coalition = side})
+    end
     mockGroups[name] = {units = units, tasks = {}, options = {}}
 end
 
@@ -1264,3 +1280,72 @@ def test_route_over_land_stays_off_road(lua: Any) -> None:
     lua.execute("FLD.routeTo('blue-tank', 0, 0, 12)")
     task = lua.eval("lastTask('blue-tank')")
     assert task.params.route.points[2].action == "Off Road"
+
+
+def start_base_assault(lua: Any) -> None:
+    # Blue closes on the red base at x = 30000; red holds it with two groups.
+    lua.execute("""
+        spawn("blue-tank", 25000, 0, 4)
+        spawn("blue-reserve", -6000, 0, 4)
+        spawn("red-tank", 3000, 0, 4)
+        spawn("red-reserve", 6000, 0, 4)
+        spawn("blue-ifv", 25000, 1000, 4)
+        spawn("red-sam", 31000, 500, 1)
+        spawn("red-guard", 29000, -1500, 2)
+        FLD.start(plan('AGGRESSIVE', 'DEFENSIVE', {
+            {name = "blue-ifv", side = "blue", role = "IFV", sector = "1", reserve = "false"},
+        }))
+    """)
+
+
+def test_attackers_hunt_down_the_base_defenders(lua: Any) -> None:
+    start_base_assault(lua)
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    assert lua.eval("groupState('blue-tank')") == "CLEARING"
+    assert lua.eval("groupState('blue-ifv')") == "CLEARING"
+    assert lua.eval("said('assaulting the enemy base, 3 defending units to clear')")
+    # Spread over the defenders, not all on one.
+    targets = {
+        lua.eval("FLD.frontLines[1].groups[1].clearTarget"),
+        lua.eval("FLD.frontLines[1].groups[5].clearTarget"),
+    }
+    assert len(targets) == 2
+
+
+def test_attackers_move_to_the_next_defender(lua: Any) -> None:
+    start_base_assault(lua)
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    target = lua.eval("FLD.frontLines[1].groups[1].clearTarget")
+    tasks = lua.eval("#mockGroups['blue-tank'].tasks")
+    # Nothing changes while the target lives.
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    assert lua.eval("#mockGroups['blue-tank'].tasks") == tasks
+    lua.execute(
+        f"mockGroups['{target.rsplit('-', 1)[0]}'].units[{target.rsplit('-', 1)[1]}].life = 0"
+    )
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 90)")
+    assert lua.eval("FLD.frontLines[1].groups[1].clearTarget") != target
+    assert lua.eval("#mockGroups['blue-tank'].tasks") == tasks + 1
+
+
+def test_cleared_base_is_taken(lua: Any) -> None:
+    start_base_assault(lua)
+    lua.execute("kill('red-sam', 1)")
+    lua.execute("kill('red-guard', 2)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    assert lua.eval("groupState('blue-tank')") == "CAPTURING"
+    assert lua.eval("lastDestination('blue-tank')") == (30000, 0)
+    assert lua.eval("said('enemy base defences cleared')")
+
+
+def test_defenders_do_not_assault_the_enemy_base(lua: Any) -> None:
+    lua.execute("""
+        spawn("blue-tank", 25000, 0, 4)
+        spawn("blue-reserve", -6000, 0, 4)
+        spawn("red-tank", 3000, 0, 4)
+        spawn("red-reserve", 6000, 0, 4)
+        spawn("red-guard", 29000, -1500, 2)
+        FLD.start(plan('DEFENSIVE', 'DEFENSIVE'))
+    """)
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    assert lua.eval("groupState('blue-tank')") != "CLEARING"
