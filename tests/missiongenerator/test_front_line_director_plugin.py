@@ -358,12 +358,39 @@ def test_exploitation_keeps_pushing_without_resistance(lua: Any) -> None:
     lua.execute("FLD.tickFront(FLD.frontLines[1], 90)")
     assert lua.eval("lastDestination('blue-tank')") == (first_x, first_z)
 
+    # The reserve followed the breakthrough up: the task force regroups.
+    assert lua.eval("groupState('blue-reserve')") == "EXPLOITING"
     lua.execute(f"moveTo('blue-tank', {first_x}, {first_z})")
     lua.execute("FLD.tickFront(FLD.frontLines[1], 120)")
+    assert lua.eval("lastDestination('blue-tank')") == (first_x, first_z)
+
+    # The straggler is not there after two minutes: the force pushes on.
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 240)")
     x, _ = lua.eval("lastDestination('blue-tank')")
     assert x > first_x + 2000
+    assert lua.eval("lastDestination('blue-reserve')")[0] > first_x + 2000
     assert lua.eval("groupState('blue-tank')") == "EXPLOITING"
     assert lua.eval("said('meets no resistance, pushing on toward')")
+
+
+def test_exploiting_task_force_pushes_on_together_once_all_arrived(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("moveTo('blue-tank', 1000, 0)")
+    lua.execute("kill('red-tank', 4)")
+    lua.execute("kill('red-reserve', 4)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 90)")
+    tank = lua.eval("lastDestination('blue-tank')")
+    reserve = lua.eval("lastDestination('blue-reserve')")
+    lua.execute(f"moveTo('blue-tank', {tank[0]}, {tank[1]})")
+    lua.execute(f"moveTo('blue-reserve', {reserve[0]}, {reserve[1]})")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 120)")
+    tank_x, tank_z = lua.eval("lastDestination('blue-tank')")
+    reserve_x, reserve_z = lua.eval("lastDestination('blue-reserve')")
+    assert tank_x > tank[0] + 2000 and reserve_x > reserve[0] + 2000
+    # Side by side, not stacked on one point.
+    assert tank_z != reserve_z
 
 
 def test_exploitation_stops_at_enemy_contact(lua: Any) -> None:
@@ -1021,13 +1048,16 @@ def test_support_weapons_follow_the_assault(lua: Any) -> None:
             {name = "blue-atgm", side = "blue", role = "ATGM", sector = "1", reserve = "false"},
         }))
     """)
-    lua.execute("FLD.frontLines[1].groups[1].state = 'ATTACKING'")
+    lua.execute("FLD.frontLines[1].groups[1].state = 'HOLDING'")
     lua.execute("FLD.frontLines[1].groups[5].state = 'HOLDING'")
     lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
     lua.execute("FLD.tickFront(FLD.frontLines[1], 240)")
+    # The tank goes for the red tank, the ATGM team overwatches from behind.
+    assert lua.eval("groupState('blue-tank')") == "ATTACKING"
+    assert lua.eval("lastDestination('blue-tank')")[0] == 3000
     assert lua.eval("groupState('blue-atgm')") == "ATTACKING"
     x, _ = lua.eval("lastDestination('blue-atgm')")
-    assert -4500 < x < -3000
+    assert -3000 < x < 3000 - 1000
 
 
 def test_idle_defenders_shift_to_a_threatened_sector(lua: Any) -> None:
@@ -1049,7 +1079,7 @@ def test_idle_defenders_shift_to_a_threatened_sector(lua: Any) -> None:
     lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
     lua.execute("FLD.tickFront(FLD.frontLines[1], 240)")
     assert lua.eval("FLD.frontLines[1].groups[5].sector") == 1
-    assert lua.eval("said('blue-tank2 shifts to reinforce OBJ ALPHA')")
+    assert lua.eval("said('shifts to reinforce OBJ ALPHA')")
 
 
 def test_quiet_defenders_push_a_screen_forward_once(lua: Any) -> None:
@@ -1117,3 +1147,45 @@ def test_air_defence_bounds_rather_than_moving_constantly(lua: Any) -> None:
     assert lua.eval("#mockGroups['blue-sam'].tasks") == 1
     lua.execute("FLD.tickFront(FLD.frontLines[1], 160)")
     assert lua.eval("#mockGroups['blue-sam'].tasks") == 2
+
+
+def test_idle_task_force_moves_together(lua: Any) -> None:
+    # Two groups reach the objective a few minutes apart.
+    lua.execute("""
+        spawn("blue-tank", 1000, 0, 4)
+        spawn("blue-reserve", -6000, 0, 4)
+        spawn("red-tank", 7000, 0, 4)
+        spawn("red-reserve", 20000, 0, 4)
+        spawn("blue-ifv", -2000, 0, 4)
+        FLD.start(plan('AGGRESSIVE', 'DEFENSIVE', {
+            {name = "blue-ifv", side = "blue", role = "IFV", sector = "1", reserve = "false"},
+        }))
+    """)
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 120)")
+    lua.execute("moveTo('blue-ifv', 1000, 400)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 150)")
+    # The tank waited long enough on its own, but the IFV just arrived.
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 240)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 330)")
+    assert lua.eval("groupState('blue-tank')") != "ATTACKING"
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 420)")
+    assert lua.eval("groupState('blue-tank')") == "ATTACKING"
+    assert lua.eval("groupState('blue-ifv')") == "ATTACKING"
+    assert lua.eval("countSaid('moves to engage')") == 1
+
+
+def test_one_group_in_contact_holds_the_task_force(lua: Any) -> None:
+    lua.execute("""
+        spawn("blue-tank", 1000, 0, 4)
+        spawn("blue-reserve", -6000, 0, 4)
+        spawn("red-tank", 9000, 0, 4)
+        spawn("red-reserve", 20000, 0, 4)
+        spawn("blue-ifv", 7000, 0, 4)
+        FLD.start(plan('AGGRESSIVE', 'DEFENSIVE', {
+            {name = "blue-ifv", side = "blue", role = "IFV", sector = "1", reserve = "false"},
+        }))
+    """)
+    for t in (30, 120, 240, 330):
+        lua.execute(f"FLD.tickFront(FLD.frontLines[1], {t})")
+    assert lua.eval("groupState('blue-tank')") == "HOLDING"

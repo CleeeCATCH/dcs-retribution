@@ -20,7 +20,9 @@
 --     gaps in the line; attackers out of contact go looking for the enemy and
 --     defenders counter-attack an attack that broke,
 --   * moves air defence with the groups it covers, a bit behind them,
---   * keeps idle groups busy: attackers hunt the enemy or push on,
+--   * moves the groups of a sector as one task force: it waits for its
+--     stragglers before bounding on and keeps busy when idle: attackers
+--     hunt the enemy or push on,
 --     support weapons follow them up, defenders shift to threatened sectors
 --     or push a screen forward,
 --   * springs ambushes: ambushing groups hold fire until the enemy is close,
@@ -81,6 +83,13 @@ FLD.config = {
     seekContactRange = 8000,
     -- How far idle defenders push a screen ahead of their objective.
     screenDistance = 1500,
+    -- Seconds an exploiting task force waits for its stragglers before the
+    -- groups that arrived push on to the next bound.
+    regroupSeconds = 120,
+    -- Lateral spacing of the groups of a task force on the move.
+    taskForceSpacing = 300,
+    -- How far behind the assault the support weapons of a task force follow.
+    supportStandoff = 2000,
     -- Air defence follows the groups it covers this far behind them, never
     -- closer than airDefenceEnemyDistance to the enemy. It bounds forward
     -- when its position is airDefenceMoveDistance off, at most once per
@@ -564,6 +573,11 @@ function FLD.loadFrontLine(data)
             enemyBaseZ = tonumber(s.enemyBaseZ),
             lastCommit = -math.huge,
             exploited = {},
+            -- By sector: since when its task force sits idle, when its
+            -- exploiting groups started arriving, whether it pushed a screen.
+            idleSince = {},
+            exploitArrivals = {},
+            screened = {},
             followed = {},
             -- Enemy batteries located after they fired.
             located = {},
@@ -1072,22 +1086,87 @@ local function enemyNear(front, sideName, x, z, radius)
     return false
 end
 
--- Exploiting groups that reached their target keep pushing toward the enemy
--- base as long as nothing stands in their way.
-function FLD.continueExploitation(front, sideName)
+-- Average position of a task force's members.
+local function forceCenter(members)
+    local sx, sz = 0, 0
+    for _, m in ipairs(members) do
+        sx, sz = sx + m.x, sz + m.z
+    end
+    return sx / #members, sz / #members
+end
+
+-- Routes a task force's members side by side to a target.
+local function routeTaskForce(front, sideName, members, tx, tz, state)
+    local side = front.sides[sideName]
+    local slots = {}
+    local count = 0
+    for _, m in ipairs(members) do
+        local offset = lateralSlot(slots, "force") * FLD.config.taskForceSpacing / 400
+        local x, z = T.offset(tx, tz, side.heading + 90, offset)
+        if FLD.routeTo(m.group.name, x, z, SPEED_ASSAULT) then
+            FLD.setFireAtWill(m.group.name, true)
+            m.group.state = state
+            m.group.exploitX, m.group.exploitZ = x, z
+            count = count + 1
+        end
+    end
+    return count
+end
+
+local function taskForceName(front, key)
+    local sector = front.sectors[key]
+    if sector then
+        return "task force " .. sector.label
+    end
+    return "task force"
+end
+
+-- Exploiting task forces keep pushing toward the enemy base while nothing
+-- stops them. A task force bounds together: once its first groups reach the
+-- target it waits for the rest, or for regroupSeconds, and then all of its
+-- groups push on to the next bound side by side.
+function FLD.continueExploitation(front, sideName, now)
+    local side = front.sides[sideName]
+    local forces = {}
     for _, group in ipairs(front.groups) do
         if group.side == sideName and group.state == "EXPLOITING" and group.exploitX
             and not group.exploitBase and not group.counterOffensive then
             local x, z = FLD.groupPosition(group.name)
-            if x and distance(x, z, group.exploitX, group.exploitZ) <= FLD.config.exploitArrivalDistance
-                and not enemyNear(front, sideName, x, z, FLD.config.exploitContactDistance) then
-                local tx, tz, targetName = FLD.exploitationTarget(front, sideName, x, z)
-                if FLD.routeTo(group.name, tx, tz, SPEED_ASSAULT) then
-                    group.exploitX, group.exploitZ = tx, tz
-                    group.exploitBase = targetName == "the enemy base"
+            if x then
+                local key = group.sector or 0
+                forces[key] = forces[key] or {}
+                table.insert(forces[key], { group = group, x = x, z = z })
+            end
+        end
+    end
+    for key, members in pairs(forces) do
+        local arrived, allArrived, contact = {}, true, false
+        for _, m in ipairs(members) do
+            if distance(m.x, m.z, m.group.exploitX, m.group.exploitZ) <= FLD.config.exploitArrivalDistance then
+                table.insert(arrived, m)
+            else
+                allArrived = false
+            end
+            if enemyNear(front, sideName, m.x, m.z, FLD.config.exploitContactDistance) then
+                contact = true
+            end
+        end
+        if #arrived == 0 or contact then
+            side.exploitArrivals[key] = nil
+        else
+            side.exploitArrivals[key] = side.exploitArrivals[key] or now
+            if allArrived or now - side.exploitArrivals[key] >= FLD.config.regroupSeconds then
+                -- The next bound is measured from the groups that made it.
+                local cx, cz = forceCenter(arrived)
+                local tx, tz, targetName = FLD.exploitationTarget(front, sideName, cx, cz)
+                if routeTaskForce(front, sideName, members, tx, tz, "EXPLOITING") > 0 then
+                    for _, m in ipairs(members) do
+                        m.group.exploitBase = targetName == "the enemy base"
+                    end
                     say(sideName, string.format("%s: %s meets no resistance, pushing on toward %s.",
-                        front.name, group.name, targetName))
+                        front.name, taskForceName(front, key), targetName))
                 end
+                side.exploitArrivals[key] = nil
             end
         end
     end
@@ -1131,78 +1210,86 @@ local function moveToSector(front, group, sector)
     group.sector = sector.index
 end
 
--- Gives an idle group something to do. Attackers go for the nearest enemy,
--- or push on toward the enemy base when none is in reach. Support weapons
--- follow the assault. Defenders shift to a threatened sector, or push a
--- screen ahead of their objective once.
-function FLD.findWork(front, group, x, z)
-    local sideName = group.side
+-- Gives an idle task force something to do, all of its groups together.
+-- Attackers go for the nearest enemy, or push on toward the enemy base when
+-- none is in reach, with their support weapons overwatching from behind.
+-- Defenders shift to a threatened sector, or push a screen ahead of their
+-- objective once.
+function FLD.taskForceWork(front, sideName, key, members)
     local side = front.sides[sideName]
+    local sector = front.sectors[key]
+    local assault, support = {}, {}
+    for _, m in ipairs(members) do
+        if ASSAULT_ROLES[m.group.role] then
+            table.insert(assault, m)
+        else
+            table.insert(support, m)
+        end
+    end
+    if #assault == 0 then
+        -- Support weapons do not attack on their own.
+        return false
+    end
+
     if OFFENSIVE_STANCES[side.stance] then
-        if ASSAULT_ROLES[group.role] then
-            local target, tx, tz = nearestEnemyGroup(front, sideName, x, z, FLD.config.seekContactRange)
-            if target then
-                if FLD.routeTo(group.name, tx, tz, SPEED_ASSAULT) then
-                    FLD.setFireAtWill(group.name, true)
-                    group.state = "ATTACKING"
-                    debug(group.name .. " moves to engage " .. target.name)
-                    return true
-                end
-                return false
-            end
-            local ax, az, targetName = FLD.exploitationTarget(front, sideName, x, z)
-            if FLD.routeTo(group.name, ax, az, SPEED_ASSAULT) then
-                group.state = "EXPLOITING"
-                group.exploitX, group.exploitZ = ax, az
-                group.exploitBase = targetName == "the enemy base"
-                say(sideName, string.format("%s: no enemy in sight, %s advancing toward %s.",
-                    front.name, group.name, targetName))
-                return true
-            end
+        local cx, cz = forceCenter(assault)
+        local target, tx, tz = nearestEnemyGroup(front, sideName, cx, cz, FLD.config.seekContactRange)
+        local state, targetName = "ATTACKING", nil
+        if target then
+            targetName = "the enemy near " .. FLD.grid(tx, tz)
+        else
+            state = "EXPLOITING"
+            tx, tz, targetName = FLD.exploitationTarget(front, sideName, cx, cz)
+        end
+        if routeTaskForce(front, sideName, assault, tx, tz, state) == 0 then
             return false
         end
-        -- Support weapons overwatch the nearest assault on the move.
-        local lead, leadDist = nil, math.huge
-        for _, other in ipairs(front.groups) do
-            if other.side == sideName and ASSAULT_ROLES[other.role]
-                and (other.state == "ATTACKING" or other.state == "EXPLOITING" or other.state == "COUNTER") then
-                local ox, oz = FLD.groupPosition(other.name)
-                if ox and distance(x, z, ox, oz) < leadDist then
-                    lead, leadDist = { x = ox, z = oz }, distance(x, z, ox, oz)
-                end
-            end
+        for _, m in ipairs(assault) do
+            m.group.exploitBase = targetName == "the enemy base"
         end
-        if lead and leadDist > 1000 then
-            local ax, az = T.offset(lead.x, lead.z, side.heading + 180, 500)
+        local bx, bz = T.offset(tx, tz, side.heading + 180, FLD.config.supportStandoff)
+        local slots = {}
+        for _, m in ipairs(support) do
+            local ax, az = T.offset(bx, bz, side.heading + 90, lateralSlot(slots, "support"))
             local px, pz = T.findPosition(ax, az, side.heading, "overwatch")
-            if FLD.routeTo(group.name, px, pz, SPEED_ASSAULT) then
-                group.state = "ATTACKING"
-                return true
+            if FLD.routeTo(m.group.name, px, pz, SPEED_ASSAULT) then
+                m.group.state = "ATTACKING"
             end
         end
-        return false
+        if target then
+            say(sideName, string.format("%s: %s moves to engage %s.", front.name, taskForceName(front, key), targetName))
+        else
+            say(sideName, string.format("%s: no enemy in sight, %s advancing toward %s.",
+                front.name, taskForceName(front, key), targetName))
+        end
+        return true
     end
 
     if side.stance ~= "DEFENSIVE" then
         return false
     end
-    local own = front.sectors[group.sector or 0]
-    local ownQuiet = not own or (FLD.sectorNeed(front, own, sideName) == 0 and own.current[OTHER_SIDE[sideName]] == 0)
-    local threatened = ownQuiet and threatenedSector(front, sideName, group.sector)
+    local ownQuiet = not sector
+        or (FLD.sectorNeed(front, sector, sideName) == 0 and sector.current[OTHER_SIDE[sideName]] == 0)
+    local threatened = ownQuiet and threatenedSector(front, sideName, key)
     if threatened then
-        moveToSector(front, group, threatened)
-        local ax, az = T.offset(threatened.objX, threatened.objZ, side.heading + 180, 300)
-        FLD.occupy(front, group, "overwatch", ax, az, front.consolidationSlots)
-        group.state = "HOLDING"
-        say(sideName, string.format("%s: %s shifts to reinforce %s.", front.name, group.name, threatened.label))
+        for _, m in ipairs(assault) do
+            moveToSector(front, m.group, threatened)
+            local ax, az = T.offset(threatened.objX, threatened.objZ, side.heading + 180, 300)
+            FLD.occupy(front, m.group, "overwatch", ax, az, front.consolidationSlots)
+            m.group.state = "HOLDING"
+        end
+        say(sideName, string.format("%s: %s shifts to reinforce %s.",
+            front.name, taskForceName(front, key), threatened.label))
         return true
     end
-    if own and ASSAULT_ROLES[group.role] and not group.screened then
-        group.screened = true
-        local ax, az = T.offset(own.objX, own.objZ, side.heading, FLD.config.screenDistance)
-        FLD.occupy(front, group, "overwatch", ax, az, front.consolidationSlots)
-        group.state = "HOLDING"
-        debug(group.name .. " pushes a screen ahead of " .. own.label)
+    if sector and not side.screened[key] then
+        side.screened[key] = true
+        local ax, az = T.offset(sector.objX, sector.objZ, side.heading, FLD.config.screenDistance)
+        for _, m in ipairs(assault) do
+            FLD.occupy(front, m.group, "overwatch", ax, az, front.consolidationSlots)
+            m.group.state = "HOLDING"
+        end
+        debug(taskForceName(front, key) .. " pushes a screen ahead of " .. sector.label)
         return true
     end
     return false
@@ -1210,22 +1297,41 @@ end
 
 local IDLE_STATES = { IDLE = true, HOLDING = true, ATTACKING = true }
 
--- Nobody sits idle: groups out of contact that have not moved for a while
--- are given something to do.
+-- Nobody sits idle. The groups of a sector form one task force: once none of
+-- them has moved or been in contact for a while, the whole task force is
+-- given something to do together, however long each group has waited.
 function FLD.keepBusy(front, sideName, now)
+    local side = front.sides[sideName]
+    local forces = {}
     for _, group in ipairs(front.groups) do
         if group.side == sideName and MANEUVER_ROLES[group.role] and IDLE_STATES[group.state]
             and not group.weaponHold then
             local x, z = FLD.groupPosition(group.name)
-            if not x or enemyNear(front, sideName, x, z, FLD.config.exploitContactDistance) then
-                group.idleSince = nil
-            elseif not group.idleSince or distance(x, z, group.idleX, group.idleZ) >= FLD.config.idleMoveDistance then
-                group.idleSince, group.idleX, group.idleZ = now, x, z
-            elseif now - group.idleSince >= FLD.config.idleSeconds then
-                FLD.findWork(front, group, x, z)
-                -- Give the new orders, or the next look, time to play out.
-                group.idleSince = now
+            if x then
+                local key = group.sector or 0
+                forces[key] = forces[key] or {}
+                table.insert(forces[key], { group = group, x = x, z = z })
             end
+        end
+    end
+    for key, members in pairs(forces) do
+        local busy = false
+        for _, m in ipairs(members) do
+            local group = m.group
+            if enemyNear(front, sideName, m.x, m.z, FLD.config.exploitContactDistance)
+                or (group.lastX and distance(m.x, m.z, group.lastX, group.lastZ) >= FLD.config.idleMoveDistance) then
+                busy = true
+            end
+            group.lastX, group.lastZ = m.x, m.z
+        end
+        if busy then
+            side.idleSince[key] = nil
+        elseif not side.idleSince[key] then
+            side.idleSince[key] = now
+        elseif now - side.idleSince[key] >= FLD.config.idleSeconds then
+            FLD.taskForceWork(front, sideName, key, members)
+            -- Give the new orders, or the next look, time to play out.
+            side.idleSince[key] = now
         end
     end
 end
@@ -1582,7 +1688,7 @@ function FLD.decide(front, sideName, now)
     FLD.withdrawBroken(front, sideName)
     FLD.consolidate(front, sideName)
     FLD.commitReserves(front, sideName, now)
-    FLD.continueExploitation(front, sideName)
+    FLD.continueExploitation(front, sideName, now)
     FLD.exploit(front, sideName)
     FLD.keepBusy(front, sideName, now)
     FLD.coverAirDefence(front, sideName, now)
