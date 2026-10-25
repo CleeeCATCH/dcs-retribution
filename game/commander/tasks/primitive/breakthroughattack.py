@@ -12,7 +12,7 @@ class BreakthroughAttack(FrontLineStanceTask):
 
     @property
     def have_sufficient_front_line_advantage(self) -> bool:
-        return self.ground_force_balance >= 2.0
+        return self.ground_force_balance >= 1.5
 
     def opposing_battle_positions_eliminated(self, state: TheaterState) -> bool:
         battle_positions = state.enemy_battle_positions[self.enemy_cp]

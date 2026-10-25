@@ -320,11 +320,16 @@ class MissionResultsProcessor:
                             delta = MINOR_DEFEAT_INFLUENCE
                             status_msg = f"Enemy forces outnumber allied forces along the {cp.name}-{enemy_cp.name} frontline and advance into the gaps in our line.  Allied forces suffer a minor defeat."
 
-                    # No progress with defensive strategies
-                    if player_won and cp.stances[enemy_cp.id] in [
-                        CombatStance.DEFENSIVE,
-                        CombatStance.AMBUSH,
-                    ]:
+                    # No progress with defensive strategies. A stalemate stays one.
+                    if (
+                        player_won
+                        and delta > 0
+                        and cp.stances[enemy_cp.id]
+                        in [
+                            CombatStance.DEFENSIVE,
+                            CombatStance.AMBUSH,
+                        ]
+                    ):
                         print(
                             f"Allied forces have adopted a defensive stance along the {cp.name}-{enemy_cp.name} "
                             f"frontline, making only limited progress."

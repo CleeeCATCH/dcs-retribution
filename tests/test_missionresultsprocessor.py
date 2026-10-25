@@ -15,6 +15,8 @@ from types import SimpleNamespace
 from typing import Any, Callable, cast
 from unittest.mock import MagicMock
 
+import pytest
+
 from game.debriefing import Debriefing, GroundLosses
 from game.ground_forces.combat_stance import CombatStance
 from game.sim.missionresultsprocessor import MissionResultsProcessor
@@ -168,3 +170,22 @@ def test_heavily_outnumbering_attacker_wins_despite_losses() -> None:
         red_casualties=2,
     )
     assert (blue, red) == (1.0, 0.0)
+
+
+def test_defensive_stalemate_does_not_advance() -> None:
+    blue, red = _score_front_line(
+        CombatStance.DEFENSIVE, CombatStance.DEFENSIVE, 20, 20
+    )
+    assert blue == red == 0.5
+
+
+def test_defensive_victory_makes_limited_progress() -> None:
+    blue, red = _score_front_line(
+        CombatStance.DEFENSIVE,
+        CombatStance.AGGRESSIVE,
+        20,
+        20,
+        blue_casualties=1,
+        red_casualties=10,
+    )
+    assert (blue, red) == pytest.approx((0.6, 0.4))

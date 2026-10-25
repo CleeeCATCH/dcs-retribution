@@ -14,10 +14,16 @@
 --   * withdraws broken groups to cover,
 --   * commits reserve task forces to counter-attack lost objectives or
 --     reinforce failing sectors,
---   * exploits a collapsed enemy sector by pushing toward the next high ground
---     or the enemy base,
+--   * exploits a collapsed or undefended enemy sector by pushing from high
+--     ground to high ground toward the enemy base while nothing stops it,
+--     follows a breakthrough up with the reserve and sends attackers into
+--     gaps in the line; attackers out of contact go looking for the enemy and
+--     defenders counter-attack an attack that broke,
+--   * reroutes groups stuck short of their destination (usually in trees)
+--     by road,
 --   * springs ambushes: ambushing groups hold fire until the enemy is close,
---   * runs the front line artillery: batteries fire on enemies friendly units
+--   * runs the front line artillery: batteries deploy on flat, open ground
+--     (beside a road where possible, away from buildings) and fire on enemies friendly units
 --     (or players' aircraft) actually see, by priority (counter-battery, air
 --     defence, counter-attacks, contested objectives), never danger close, and
 --     relocate after every fire mission because firing reveals them to the
@@ -47,13 +53,16 @@ FLD.config = {
     -- Radius around the sector center searched for key terrain.
     keyTerrainRadius = 1500,
     -- Seconds between two reserve commitments of one side on one front.
-    commitCooldownSeconds = 180,
+    commitCooldownSeconds = 120,
     -- Reserve groups committed together as one task force.
     taskForceSize = 2,
     -- A sector whose enemy strength drops below this share is exploited.
-    exploitEnemyStrength = 0.3,
+    exploitEnemyStrength = 0.5,
     -- Our strength share needed to exploit.
-    exploitFriendlyStrength = 0.5,
+    exploitFriendlyStrength = 0.4,
+    -- Defenders go over to the counter-attack when the attackers in front of
+    -- them drop below this share.
+    counterOffensiveEnemyStrength = 0.25,
     -- Distance pushed past the objective when exploiting.
     exploitDistance = 4000,
     -- The enemy base is the exploitation target when it is this close.
@@ -62,6 +71,25 @@ FLD.config = {
     exploitArrivalDistance = 600,
     -- Exploiting groups stop to fight enemies this close before pushing on.
     exploitContactDistance = 3000,
+    -- Attacking groups out of contact this long go looking for the enemy.
+    seekContactSeconds = 180,
+    -- How far attacking groups look for an enemy to engage.
+    seekContactRange = 8000,
+    -- A moving group that covered less than stuckMoveDistance in stuckSeconds
+    -- while out of contact is stuck, usually in trees, and is rerouted by road.
+    stuckSeconds = 120,
+    stuckMoveDistance = 100,
+    -- A group this close to its destination has arrived.
+    routeArrivalDistance = 300,
+    maxUnstickAttempts = 2,
+    -- How far a stuck group goes to reach a road.
+    unstickRoadDistance = 1500,
+    -- Artillery firing positions: searched this far around the battery, at
+    -- most this steep (rise over run), and preferably this close to a road,
+    -- where no trees cover the guns.
+    firingPositionRadius = 800,
+    maxFiringSlope = 0.1,
+    firingRoadDistance = 30,
     -- A friendly sector below this strength share asks for reinforcement.
     reinforceStrength = 0.5,
     -- Group strength share at which a group breaks, randomized in this range.
@@ -292,6 +320,91 @@ function T.scorePosition(x, z, mode, approach, facing, anchorH)
     return score
 end
 
+-- Steepest rise over run to the ground 25 m around a point.
+function T.slope(x, z)
+    local h = T.height(x, z)
+    local steepest = 0
+    for i = 0, 3 do
+        local px, pz = T.offset(x, z, i * 90, 25)
+        steepest = math.max(steepest, math.abs(T.height(px, pz) - h) / 25)
+    end
+    return steepest
+end
+
+-- The closest point on a road, nil when the map has none.
+function T.nearestRoad(x, z)
+    if not land.getClosestPointOnRoads then
+        return nil
+    end
+    local ok, rx, rz = pcall(land.getClosestPointOnRoads, "roads", x, z)
+    if not ok or not rx or not rz then
+        return nil
+    end
+    return rx, rz
+end
+
+-- Whether buildings or other map objects stand this close to a point.
+-- Scripts cannot see trees; roads are the one place known to be clear of them.
+function T.obstructed(x, z, radius)
+    if not (world.searchObjects and world.VolumeType and Object and Object.Category) then
+        return false
+    end
+    local found = false
+    local volume = {
+        id = world.VolumeType.SPHERE,
+        params = { point = { x = x, y = T.height(x, z), z = z }, radius = radius },
+    }
+    pcall(world.searchObjects, Object.Category.SCENERY, volume, function()
+        found = true
+        return false
+    end)
+    return found
+end
+
+local function scoreFiringPosition(x, z, ax, az)
+    if not T.isGround(x, z) then
+        return nil
+    end
+    local slope = T.slope(x, z)
+    local score = -slope * 100 - distance(x, z, ax, az) * 0.005
+    if slope > FLD.config.maxFiringSlope then
+        score = score - 50
+    end
+    local rx, rz = T.nearestRoad(x, z)
+    if T.isRoad(x, z) or (rx and distance(x, z, rx, rz) <= FLD.config.firingRoadDistance) then
+        score = score + 8
+    end
+    if T.obstructed(x, z, 60) then
+        score = score - 20
+    end
+    return score
+end
+
+-- A flat, open spot near the anchor where a battery can fire: no steep
+-- ground, no buildings, preferably beside a road so no trees cover the guns.
+function T.findFiringPosition(ax, az)
+    local radius = FLD.config.firingPositionRadius
+    local candidates = { { x = ax, z = az } }
+    for _, r in ipairs({ radius / 4, radius / 2, radius * 3 / 4, radius }) do
+        for i = 0, 7 do
+            local x, z = T.offset(ax, az, i * 45, r)
+            table.insert(candidates, { x = x, z = z })
+        end
+    end
+    local rx, rz = T.nearestRoad(ax, az)
+    if rx and distance(ax, az, rx, rz) <= radius then
+        table.insert(candidates, { x = rx, z = rz })
+    end
+    local bestX, bestZ, bestScore = ax, az, nil
+    for _, c in ipairs(candidates) do
+        local score = scoreFiringPosition(c.x, c.z, ax, az)
+        if score and (bestScore == nil or score > bestScore) then
+            bestX, bestZ, bestScore = c.x, c.z, score
+        end
+    end
+    return bestX, bestZ
+end
+
 -- Finds a position near the anchor, on our side of it.
 function T.findPosition(ax, az, facing, mode)
     local approach = approachPoints(ax, az, facing)
@@ -355,7 +468,15 @@ local function routePoint(x, z, speed, action)
     }
 end
 
-function FLD.routeTo(name, x, z, speed, action)
+-- Routes in progress by group name, to find groups that got stuck.
+FLD.routes = {}
+
+local function missionTime()
+    return timer.getTime()
+end
+
+-- Routes a group to a point, through the via point when given.
+function FLD.routeTo(name, x, z, speed, action, via)
     if not FLD.movingUnits then
         return false
     end
@@ -364,15 +485,25 @@ function FLD.routeTo(name, x, z, speed, action)
     if not group or not fromX then
         return false
     end
-    local mission = {
-        id = "Mission",
-        params = {
-            route = {
-                points = { routePoint(fromX, fromZ, speed, action), routePoint(x, z, speed, action) },
-            },
-        },
-    }
+    local points = { routePoint(fromX, fromZ, speed, action) }
+    if via then
+        table.insert(points, routePoint(via.x, via.z, speed, "Off Road"))
+        -- From the road, follow roads to the destination to stay out of trees.
+        table.insert(points, routePoint(x, z, speed, "On Road"))
+    else
+        table.insert(points, routePoint(x, z, speed, action))
+    end
+    local mission = { id = "Mission", params = { route = { points = points } } }
     group:getController():setTask(mission)
+    FLD.routes[name] = {
+        destX = x,
+        destZ = z,
+        speed = speed,
+        checkX = fromX,
+        checkZ = fromZ,
+        checkT = missionTime(),
+        attempts = 0,
+    }
     return true
 end
 
@@ -446,6 +577,7 @@ function FLD.loadFrontLine(data)
             enemyBaseZ = tonumber(s.enemyBaseZ),
             lastCommit = -math.huge,
             exploited = {},
+            followed = {},
             -- Enemy batteries located after they fired.
             located = {},
             recentTargets = {},
@@ -662,6 +794,17 @@ function FLD.setup(front)
             if x then
                 FLD.occupy(front, group, "hide", x, z, nil)
             end
+        elseif group.role == "ARTILLERY" then
+            -- Batteries spawn wherever the generator put them, often on a
+            -- slope or under cover: move them to ground they can fire from.
+            local x, z = FLD.groupPosition(group.name)
+            if x then
+                local fx, fz = T.findFiringPosition(x, z)
+                if distance(x, z, fx, fz) > 50 and FLD.routeTo(group.name, fx, fz, SPEED_REPOSITION) then
+                    group.artyState = "MOVING"
+                    group.artyUntil = missionTime() + FLD.config.relocateSeconds
+                end
+            end
         elseif sector and MANEUVER_ROLES[group.role] then
             if side.stance == "DEFENSIVE" then
                 local depth = group.role == "ATGM" and 1500 or 200
@@ -800,25 +943,42 @@ function FLD.consolidate(front, sideName)
     end
 end
 
--- How urgently a sector needs the reserve. 0 means it does not.
-function FLD.sectorNeed(sector, sideName, stance)
+-- A group still exploiting the breakthrough at a sector, if any.
+local function exploitingGroup(front, sideName, sectorIndex)
+    for _, group in ipairs(front.groups) do
+        if group.side == sideName and group.sector == sectorIndex and group.state == "EXPLOITING"
+            and groupStrength(group) > 0 then
+            return group
+        end
+    end
+    return nil
+end
+
+-- How urgently a sector needs the reserve, 0 when it does not, and what for.
+function FLD.sectorNeed(front, sector, sideName)
+    local side = front.sides[sideName]
     local enemy = OTHER_SIDE[sideName]
     if sector.holder == enemy and not sector.contested then
-        return 3
+        return 3, "counter"
     end
     if sector.contested then
-        return 2
+        return 2, "counter"
+    end
+    -- Reinforce success: the reserve follows a breakthrough.
+    if OFFENSIVE_STANCES[side.stance] and side.exploited[sector.index] and not side.followed[sector.index]
+        and exploitingGroup(front, sideName, sector.index) then
+        return 1.5, "follow"
     end
     if sector.initial[sideName] > 0 and strengthShare(sector, sideName) < FLD.config.reinforceStrength
         and sector.current[enemy] > 0 then
-        return 1
+        return 1, "reinforce"
     end
     -- A gap in the line: nobody fights for this objective. Attackers seize it.
-    if OFFENSIVE_STANCES[stance] and sector.holder ~= sideName
+    if OFFENSIVE_STANCES[side.stance] and sector.holder ~= sideName
         and sector.current[sideName] == 0 and sector.current[enemy] == 0 then
-        return 0.5
+        return 0.5, "seize"
     end
-    return 0
+    return 0, nil
 end
 
 function FLD.commitReserves(front, sideName, now)
@@ -826,14 +986,14 @@ function FLD.commitReserves(front, sideName, now)
     if now - side.lastCommit < FLD.config.commitCooldownSeconds then
         return
     end
-    local best, bestNeed = nil, 0
+    local best, bestNeed, kind = nil, 0, nil
     for _, sector in ipairs(front.sectors) do
-        local need = FLD.sectorNeed(sector, sideName, side.stance)
+        local need, needKind = FLD.sectorNeed(front, sector, sideName)
         if side.mainEffort == sector.index and need >= 1 then
             need = need + 0.5
         end
         if need > bestNeed then
-            best, bestNeed = sector, need
+            best, bestNeed, kind = sector, need, needKind
         end
     end
     if not best then
@@ -856,14 +1016,19 @@ function FLD.commitReserves(front, sideName, now)
         return a.dist < b.dist
     end)
 
-    local counterAttack = bestNeed >= 2
-    local seize = bestNeed < 1
+    local leader = exploitingGroup(front, sideName, best.index)
     local committed = 0
     for i = 1, math.min(FLD.config.taskForceSize, #reserves) do
         local group = reserves[i].group
         group.sector = best.index
         best.initial[sideName] = best.initial[sideName] + group.initialSize
-        if counterAttack or seize then
+        if kind == "follow" then
+            FLD.setFireAtWill(group.name, true)
+            FLD.routeTo(group.name, leader.exploitX, leader.exploitZ, SPEED_ASSAULT)
+            group.state = "EXPLOITING"
+            group.exploitX, group.exploitZ = leader.exploitX, leader.exploitZ
+            group.exploitBase = leader.exploitBase
+        elseif kind == "counter" or kind == "seize" then
             FLD.setFireAtWill(group.name, true)
             FLD.routeTo(group.name, best.objX, best.objZ, SPEED_ASSAULT)
             group.state = "COUNTER"
@@ -875,10 +1040,14 @@ function FLD.commitReserves(front, sideName, now)
         committed = committed + 1
     end
     side.lastCommit = now
-    if seize then
+    if kind == "follow" then
+        side.followed[best.index] = true
+        say(sideName, string.format("%s: reserve task force (%d groups) following up the breakthrough at %s.",
+            front.name, committed, best.label))
+    elseif kind == "seize" then
         say(sideName, string.format("%s: reserve task force (%d groups) advancing into the gap at %s.",
             front.name, committed, best.label))
-    elseif counterAttack then
+    elseif kind == "counter" then
         say(sideName, string.format("%s: reserve task force (%d groups) committed to counter-attack %s.",
             front.name, committed, best.label))
     else
@@ -921,7 +1090,7 @@ end
 function FLD.continueExploitation(front, sideName)
     for _, group in ipairs(front.groups) do
         if group.side == sideName and group.state == "EXPLOITING" and group.exploitX
-            and not group.exploitBase then
+            and not group.exploitBase and not group.counterOffensive then
             local x, z = FLD.groupPosition(group.name)
             if x and distance(x, z, group.exploitX, group.exploitZ) <= FLD.config.exploitArrivalDistance
                 and not enemyNear(front, sideName, x, z, FLD.config.exploitContactDistance) then
@@ -937,35 +1106,134 @@ function FLD.continueExploitation(front, sideName)
     end
 end
 
+-- Groups that stopped short of their destination out of contact are stuck,
+-- in DCS usually in trees. They drive to the nearest road and follow roads
+-- on, or failing that are sent to open ground ahead.
+function FLD.unstick(front, now)
+    for _, group in ipairs(front.groups) do
+        local route = FLD.routes[group.name]
+        if route and group.state ~= "DEAD" then
+            local x, z = FLD.groupPosition(group.name)
+            if not x or distance(x, z, route.destX, route.destZ) <= FLD.config.routeArrivalDistance then
+                FLD.routes[group.name] = nil
+            elseif enemyNear(front, group.side, x, z, FLD.config.exploitContactDistance)
+                or distance(x, z, route.checkX, route.checkZ) >= FLD.config.stuckMoveDistance then
+                -- Fighting or making progress.
+                route.checkX, route.checkZ, route.checkT = x, z, now
+            elseif now - route.checkT >= FLD.config.stuckSeconds then
+                if route.attempts >= FLD.config.maxUnstickAttempts then
+                    FLD.routes[group.name] = nil
+                else
+                    local rx, rz = T.nearestRoad(x, z)
+                    local via = nil
+                    if rx and distance(x, z, rx, rz) <= FLD.config.unstickRoadDistance then
+                        via = { x = rx, z = rz }
+                    else
+                        -- No road: clear ground a short bound ahead.
+                        local heading = front.sides[group.side].heading
+                        local ox, oz = T.offset(x, z, heading, 300)
+                        local px, pz = T.findPosition(ox, oz, heading, "overwatch")
+                        via = { x = px, z = pz }
+                    end
+                    local attempts = route.attempts + 1
+                    if FLD.routeTo(group.name, route.destX, route.destZ, route.speed, nil, via) then
+                        FLD.routes[group.name].attempts = attempts
+                        debug(group.name .. " is stuck, rerouting by road")
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function nearestEnemyGroup(front, sideName, x, z, radius)
+    local enemy = OTHER_SIDE[sideName]
+    local best, bestX, bestZ, bestDist = nil, nil, nil, radius
+    for _, group in ipairs(front.groups) do
+        if group.side == enemy and MANEUVER_ROLES[group.role] and group.state ~= "DEAD"
+            and group.state ~= "RESERVE" then
+            local gx, gz = FLD.groupPosition(group.name)
+            if gx and distance(x, z, gx, gz) <= bestDist then
+                best, bestX, bestZ, bestDist = group, gx, gz, distance(x, z, gx, gz)
+            end
+        end
+    end
+    return best, bestX, bestZ
+end
+
+-- Attackers never sit idle: groups out of contact for a while go after the
+-- nearest enemy they know of, even if that leaves an objective thinly held.
+function FLD.seekContact(front, sideName, now)
+    if not OFFENSIVE_STANCES[front.sides[sideName].stance] then
+        return
+    end
+    for _, group in ipairs(front.groups) do
+        if group.side == sideName and ASSAULT_ROLES[group.role]
+            and (group.state == "HOLDING" or group.state == "ATTACKING") then
+            local x, z = FLD.groupPosition(group.name)
+            if not x then
+                group.quietSince = nil
+            elseif enemyNear(front, sideName, x, z, FLD.config.exploitContactDistance) then
+                group.quietSince = nil
+            elseif not group.quietSince then
+                group.quietSince = now
+            elseif now - group.quietSince >= FLD.config.seekContactSeconds then
+                local target, tx, tz = nearestEnemyGroup(front, sideName, x, z, FLD.config.seekContactRange)
+                if target and FLD.routeTo(group.name, tx, tz, SPEED_ASSAULT) then
+                    FLD.setFireAtWill(group.name, true)
+                    group.state = "ATTACKING"
+                    group.quietSince = now
+                    debug(group.name .. " moves to engage " .. target.name)
+                end
+            end
+        end
+    end
+end
+
 function FLD.exploit(front, sideName)
     local side = front.sides[sideName]
-    if not OFFENSIVE_STANCES[side.stance] then
+    local offensive = OFFENSIVE_STANCES[side.stance]
+    -- Defenders seize the moment too: once the attack in front of them breaks
+    -- they counter-attack one bound, then hold again.
+    if not offensive and side.stance ~= "DEFENSIVE" then
         return
+    end
+    local enemyLimit = FLD.config.exploitEnemyStrength
+    if not offensive then
+        enemyLimit = FLD.config.counterOffensiveEnemyStrength
     end
     local enemy = OTHER_SIDE[sideName]
     for _, sector in ipairs(front.sectors) do
         -- Gaps the enemy never defended have no enemy strength and are
-        -- exploited as soon as we hold them.
+        -- exploited by attackers as soon as they hold them.
         if not side.exploited[sector.index] and sideHolding(sector) == sideName
-            and strengthShare(sector, enemy) <= FLD.config.exploitEnemyStrength
+            and (offensive or sector.initial[enemy] > 0)
+            and strengthShare(sector, enemy) <= enemyLimit
             and strengthShare(sector, sideName) >= FLD.config.exploitFriendlyStrength then
             local x, z, targetName = FLD.exploitationTarget(front, sideName, sector.objX, sector.objZ)
             local count = 0
             for _, group in ipairs(front.groups) do
                 if group.side == sideName and group.sector == sector.index and ASSAULT_ROLES[group.role]
-                    and (group.state == "HOLDING" or group.state == "IDLE" or group.state == "COUNTER") then
+                    and (group.state == "HOLDING" or group.state == "IDLE" or group.state == "COUNTER"
+                        or group.state == "ATTACKING") then
                     if FLD.routeTo(group.name, x, z, SPEED_ASSAULT) then
                         group.state = "EXPLOITING"
                         group.exploitX, group.exploitZ = x, z
                         group.exploitBase = targetName == "the enemy base"
+                        group.counterOffensive = not offensive
                         count = count + 1
                     end
                 end
             end
             if count > 0 then
                 side.exploited[sector.index] = true
-                say(sideName, string.format("%s: enemy collapsing at %s, task force exploiting toward %s.",
-                    front.name, sector.label, targetName))
+                if offensive then
+                    say(sideName, string.format("%s: enemy collapsing at %s, task force exploiting toward %s.",
+                        front.name, sector.label, targetName))
+                else
+                    say(sideName, string.format("%s: attack broken at %s, counter-attacking toward %s.",
+                        front.name, sector.label, targetName))
+                end
                 say(enemy, string.format("%s: enemy armor breaking through at %s!", front.name, sector.label))
             end
         end
@@ -1067,7 +1335,7 @@ function FLD.artilleryTargets(front, sideName, now)
             if x and FLD.isSpotted(front, sideName, x, z) then
                 local score = TARGET_PRIORITY[group.role] or 2
                 local kind = group.role == "SHORAD" and "air defence" or "armor"
-                if group.state == "COUNTER" or group.state == "EXPLOITING" then
+                if group.state == "COUNTER" or group.state == "EXPLOITING" or group.state == "ATTACKING" then
                     score = math.max(score, 5)
                 end
                 for _, sector in ipairs(front.sectors) do
@@ -1113,6 +1381,8 @@ function FLD.fireMission(front, battery, target, now)
             expendQtyEnabled = true,
         },
     })
+    -- The fire mission replaces any route: a firing battery is not stuck.
+    FLD.routes[battery.name] = nil
     battery.artyState = "FIRING"
     battery.artyUntil = now + FLD.config.fireMissionSeconds
     battery.missions = battery.missions + 1
@@ -1172,8 +1442,8 @@ function FLD.runArtillery(front, sideName, now)
                 local x, z = FLD.groupPosition(battery.name)
                 if FLD.movingUnits and x then
                     local ax, az = T.offset(x, z, side.heading + 180 + math.random(-60, 60), FLD.config.relocateDistance)
-                    local hx, hz = T.findPosition(ax, az, side.heading, "hide")
-                    FLD.routeTo(battery.name, hx, hz, SPEED_WITHDRAW)
+                    local fx, fz = T.findFiringPosition(ax, az)
+                    FLD.routeTo(battery.name, fx, fz, SPEED_WITHDRAW)
                     battery.artyState = "MOVING"
                     battery.artyUntil = now + FLD.config.relocateSeconds
                 else
@@ -1222,12 +1492,16 @@ function FLD.decide(front, sideName, now)
     FLD.commitReserves(front, sideName, now)
     FLD.continueExploitation(front, sideName)
     FLD.exploit(front, sideName)
+    FLD.seekContact(front, sideName, now)
 end
 
 function FLD.tickFront(front, now)
     FLD.runEvents(front, now)
     for _, sector in ipairs(front.sectors) do
         FLD.updateSector(front, sector)
+    end
+    if FLD.movingUnits then
+        FLD.unstick(front, now)
     end
     for _, sideName in ipairs({ "blue", "red" }) do
         FLD.decide(front, sideName, now)

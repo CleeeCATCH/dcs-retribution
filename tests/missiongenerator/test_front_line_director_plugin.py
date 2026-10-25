@@ -49,12 +49,30 @@ land = {
     getHeight = function(p) return hillHeight(p.x, p.y) end,
     getSurfaceType = function(p) return SURF.LAND end,
     isVisible = function(a, b) return visibleFn(a, b) end,
+    getClosestPointOnRoads = function(kind, x, z)
+        if roadZ then return x, roadZ end
+        return nil
+    end,
 }
 coalition = {side = {RED = 1, BLUE = 2}, getPlayers = function(side)
     if side == 2 then return players.blue end
     return players.red
 end}
-world = {event = {S_EVENT_SHOT = 1, S_EVENT_SHOOTING_START = 23}, addEventHandler = function() end}
+buildings = {}
+world = {
+    event = {S_EVENT_SHOT = 1, S_EVENT_SHOOTING_START = 23},
+    addEventHandler = function() end,
+    VolumeType = {SPHERE = 2},
+    searchObjects = function(category, volume, handler)
+        local p = volume.params.point
+        for _, b in ipairs(buildings) do
+            if math.sqrt((b.x - p.x) ^ 2 + (b.z - p.z) ^ 2) <= volume.params.radius then
+                handler()
+            end
+        end
+    end,
+}
+Object = {Category = {SCENERY = 5}}
 AI = {Option = {Ground = {
     id = {ROE = "roe", ALARM_STATE = "alarm"},
     val = {ROE = {OPEN_FIRE = "open", WEAPON_HOLD = "hold"}, ALARM_STATE = {RED = "red"}},
@@ -167,6 +185,14 @@ function said(fragment)
     return false
 end
 
+function countSaid(fragment)
+    local n = 0
+    for _, m in ipairs(messages) do
+        if string.find(m.text, fragment, 1, true) then n = n + 1 end
+    end
+    return n
+end
+
 function groupState(name)
     for _, g in ipairs(FLD.frontLines[1].groups) do
         if g.name == name then return g.state end
@@ -272,7 +298,7 @@ def test_capture_and_counter_attack(lua: Any) -> None:
 
     # The reserve is spent: no second commitment, even after the cooldown.
     lua.execute("FLD.tickFront(FLD.frontLines[1], 1000)")
-    assert lua.eval("#mockGroups['red-reserve'].tasks") == 2
+    assert lua.eval("countSaid('committed to counter-attack')") == 1
 
 
 def test_broken_group_withdraws_to_cover(lua: Any) -> None:
@@ -376,13 +402,59 @@ def test_attacker_reserve_advances_into_a_gap(lua: Any) -> None:
     assert lua.eval("groupState('red-reserve')") == "RESERVE"
 
 
-def test_defensive_side_does_not_exploit(lua: Any) -> None:
+def test_defensive_side_holds_against_a_dented_attack(lua: Any) -> None:
     lua.execute("setupBattle('DEFENSIVE', 'AGGRESSIVE')")
+    lua.execute("moveTo('blue-tank', 1000, 0)")
+    lua.execute("kill('red-tank', 2)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    assert lua.eval("groupState('blue-tank')") != "EXPLOITING"
+
+
+def test_defensive_side_counter_attacks_a_broken_attack(lua: Any) -> None:
+    lua.execute("setupBattle('DEFENSIVE', 'AGGRESSIVE')")
+    lua.execute("moveTo('blue-tank', 1000, 0)")
+    lua.execute("kill('red-tank', 4)")
+    lua.execute("kill('red-reserve', 4)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    assert lua.eval("groupState('blue-tank')") == "EXPLOITING"
+    assert lua.eval("said('counter-attacking toward')")
+
+    # One bound only, then the defenders hold again.
+    first = lua.eval("lastDestination('blue-tank')")
+    lua.execute(f"moveTo('blue-tank', {first[0]}, {first[1]})")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 90)")
+    assert lua.eval("lastDestination('blue-tank')") == first
+
+
+def test_attackers_out_of_contact_go_looking_for_the_enemy(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("moveTo('blue-tank', 1000, 0)")
+    # Red falls back out of contact but is not beaten yet.
+    lua.execute("moveTo('red-tank', 6000, 2000)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
+    assert lua.eval("groupState('blue-tank')") == "HOLDING"
+
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 240)")
+    assert lua.eval("groupState('blue-tank')") == "ATTACKING"
+    x, z = lua.eval("lastDestination('blue-tank')")
+    assert x == 6000
+
+
+def test_reserve_follows_up_a_breakthrough(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
     lua.execute("moveTo('blue-tank', 1000, 0)")
     lua.execute("kill('red-tank', 4)")
     lua.execute("FLD.tickFront(FLD.frontLines[1], 30)")
     lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
-    assert lua.eval("groupState('blue-tank')") != "EXPLOITING"
+    target = lua.eval("lastDestination('blue-tank')")
+
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 200)")
+    assert lua.eval("groupState('blue-reserve')") == "EXPLOITING"
+    assert lua.eval("lastDestination('blue-reserve')") == target
+    assert lua.eval("said('following up the breakthrough at OBJ ALPHA')")
 
 
 def test_static_units_are_never_moved(lua: Any) -> None:
@@ -872,3 +944,86 @@ def test_located_battery_is_announced_once(arty: Any) -> None:
     """)
     assert arty.eval("battery('blue-arty').missions") > 1
     assert arty.eval("announced") == 1
+
+
+def route_points(lua: Any, name: str) -> list[tuple[float, float, str]]:
+    task = lua.eval(f"lastTask('{name}')")
+    points = task.params.route.points
+    return [
+        (points[i].x, points[i].y, points[i].action) for i in range(1, len(points) + 1)
+    ]
+
+
+def test_stuck_group_is_rerouted_by_road(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("roadZ = 200")
+    lua.execute("FLD.routeTo('blue-tank', -3000, 3000, 12)")
+
+    # Still within the stuck delay: left alone.
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 60)")
+    assert len(route_points(lua, "blue-tank")) == 2
+
+    # Two minutes without moving, out of contact: off to the road.
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 150)")
+    points = route_points(lua, "blue-tank")
+    assert len(points) == 3
+    assert points[1][:2] == (-3000, 200)
+    assert points[2] == (-3000, 3000, "On Road")
+
+
+def test_moving_group_is_not_stuck(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("roadZ = 200")
+    lua.execute("FLD.routeTo('blue-tank', -3000, 3000, 12)")
+    lua.execute("moveTo('blue-tank', -3000, 500)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 100)")
+    lua.execute("moveTo('blue-tank', -3000, 1000)")
+    lua.execute("FLD.tickFront(FLD.frontLines[1], 200)")
+    assert len(route_points(lua, "blue-tank")) == 2
+
+
+def test_stuck_group_gives_up_after_a_few_attempts(lua: Any) -> None:
+    lua.execute("setupBattle('AGGRESSIVE', 'DEFENSIVE')")
+    lua.execute("roadZ = 200")
+    lua.execute("FLD.routeTo('blue-tank', -3000, 3000, 12)")
+    for t in (150, 300, 450, 600):
+        lua.execute(f"FLD.tickFront(FLD.frontLines[1], {t})")
+    assert lua.eval("#mockGroups['blue-tank'].tasks") == 3
+
+
+def start_with_battery(lua: Any, x: float, z: float) -> None:
+    lua.execute(f"""
+        spawn("blue-tank", -3000, 0, 4)
+        spawn("blue-reserve", -6000, 0, 4)
+        spawn("red-tank", 3000, 0, 4)
+        spawn("red-reserve", 6000, 0, 4)
+        spawn("blue-arty", {x}, {z}, 4)
+        FLD.start(plan('AGGRESSIVE', 'DEFENSIVE', {{
+            {{name = "blue-arty", side = "blue", role = "ARTILLERY", reserve = "false", range = "30000"}},
+        }}))
+    """)
+
+
+def test_battery_on_a_slope_moves_to_flat_ground(lua: Any) -> None:
+    start_with_battery(lua, 1500, 0)
+    x, z = lua.eval("lastDestination('blue-arty')")
+    assert lua.eval(f"FLD.terrain.slope({x}, {z})") <= 0.1
+    assert lua.eval("FLD.frontLines[1].groups[5].artyState") == "MOVING"
+
+
+def test_battery_on_open_flat_ground_stays(lua: Any) -> None:
+    start_with_battery(lua, -15000, 0)
+    assert lua.eval("lastDestination('blue-arty')") is None
+
+
+def test_battery_prefers_a_roadside_position(lua: Any) -> None:
+    lua.execute("roadZ = 400")
+    start_with_battery(lua, -15000, 0)
+    assert lua.eval("lastDestination('blue-arty')") == (-15000, 400)
+
+
+def test_battery_moves_away_from_buildings(lua: Any) -> None:
+    lua.execute("table.insert(buildings, {x = -15000, z = 20})")
+    start_with_battery(lua, -15000, 0)
+    x, z = lua.eval("lastDestination('blue-arty')")
+    assert ((x + 15000) ** 2 + (z - 20) ** 2) ** 0.5 > 60

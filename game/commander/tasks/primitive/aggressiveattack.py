@@ -11,4 +11,4 @@ class AggressiveAttack(FrontLineStanceTask):
 
     @property
     def have_sufficient_front_line_advantage(self) -> bool:
-        return self.ground_force_balance >= 0.8
+        return self.ground_force_balance >= 0.6
