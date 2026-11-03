@@ -250,6 +250,12 @@ local function escort_leash_update()
         local escort_group = escort_leash_get_group(pair.escortGroupId)
         local escorted_group = escort_leash_get_group(pair.escortedGroupId)
 
+        -- The Tactical AI plugin may have sent this escort home; don't fight it.
+        if escort_group and TacticalAI and TacticalAI.isManaged
+            and TacticalAI.isManaged(escort_group:getName()) then
+            escort_group = nil
+        end
+
         -- If the escorted group no longer exists (dead/despawned), ensure escort isn't stuck.
         if escort_group and not escorted_group then
             escort_leash_set_roe(escort_group, AI.Option.Air.val.ROE.OPEN_FIRE)

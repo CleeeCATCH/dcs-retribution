@@ -12,6 +12,7 @@ from dcs.translation import String
 from dcs.triggers import TriggerStart
 
 from game.ato import FlightType
+from game.ato.flightwaypointtype import FlightWaypointType
 from game.data.units import UnitClass
 from game.dcs.unittype import UnitType
 from game.dcs.aircrafttype import AircraftType
@@ -24,6 +25,25 @@ from .missiondata import MissionData
 
 if TYPE_CHECKING:
     from game import Game
+
+#: How the Tactical AI plugin treats each flight type. Flight types not listed here
+#: (support, transport, ...) are left alone.
+TACTICAL_AI_ROLES: dict[FlightType, str] = {
+    FlightType.BARCAP: "cap",
+    FlightType.TARCAP: "cap",
+    FlightType.INTERCEPTION: "cap",
+    FlightType.ESCORT: "fighter",
+    FlightType.SWEEP: "fighter",
+    FlightType.STRIKE: "striker",
+    FlightType.BAI: "striker",
+    FlightType.CAS: "striker",
+    FlightType.ANTISHIP: "striker",
+    FlightType.SEAD: "striker",
+    FlightType.DEAD: "striker",
+    FlightType.OCA_RUNWAY: "striker",
+    FlightType.OCA_AIRCRAFT: "striker",
+    FlightType.ARMED_RECON: "striker",
+}
 
 
 class LuaGenerator:
@@ -350,6 +370,7 @@ class LuaGenerator:
 
         self.generate_dynamic_activation_data(lua_data)
         self.generate_front_line_director_data(lua_data)
+        self.generate_tactical_ai_data(lua_data)
 
         trigger = TriggerStart(comment="Set DCS Retribution data")
         trigger.add_action(DoScript(String(lua_data.create_operations_lua())))
@@ -456,6 +477,46 @@ class LuaGenerator:
                     event_group = event_groups.add_item()
                     event_group.add_key_value("name", group.group_name)
                     event_group.add_key_value("role", group.role)
+
+    def generate_tactical_ai_data(self, lua_data: LuaData) -> None:
+        """Exports the AI flights the Tactical AI plugin manages.
+
+        Player flights are left out: the plugin never overrides a human.
+        """
+        flights_object = lua_data.add_item("TacticalAI").add_item("flights")
+        for flight in self.mission_data.flights:
+            if flight.client_units:
+                continue
+            role = TACTICAL_AI_ROLES.get(flight.flight_type)
+            if role is None:
+                continue
+            item = flights_object.add_item()
+            item.add_data_array("units", [unit.name for unit in flight.units])
+            item.add_key_value("side", "2" if flight.friendly.is_blue else "1")
+            item.add_key_value("role", role)
+            item.add_key_value("flightType", str(flight.flight_type))
+            item.add_key_value("package", str(id(flight.package)))
+            item.add_key_value(
+                "escort", "true" if flight.flight_type is FlightType.ESCORT else "false"
+            )
+
+            patrol_points = [
+                wp.position
+                for wp in flight.waypoints
+                if wp.waypoint_type
+                in (FlightWaypointType.PATROL_TRACK, FlightWaypointType.PATROL)
+            ]
+            target = flight.package.target.position
+            if patrol_points:
+                anchor_x = sum(p.x for p in patrol_points) / len(patrol_points)
+                anchor_y = sum(p.y for p in patrol_points) / len(patrol_points)
+            else:
+                anchor_x, anchor_y = target.x, target.y
+            if role == "cap":
+                item.add_key_value("anchorX", str(anchor_x))
+                item.add_key_value("anchorY", str(anchor_y))
+            item.add_key_value("targetX", str(target.x))
+            item.add_key_value("targetY", str(target.y))
 
     def inject_lua_trigger(self, contents: str, comment: str) -> None:
         trigger = TriggerStart(comment=comment)

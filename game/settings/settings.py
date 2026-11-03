@@ -241,6 +241,18 @@ class Settings:
             "provided the faction has access to them."
         ),
     )
+    autoplan_scale_escorts_to_air_threat: bool = boolean_option(
+        "Auto-planner sizes fighter escorts to the enemy air threat",
+        page=CAMPAIGN_DOCTRINE_PAGE,
+        section=GENERAL_SECTION,
+        default=True,
+        invert=False,
+        detail=(
+            "If checked, packages whose route is covered by a large enemy fighter "
+            "force get a four-ship escort instead of a two-ship, when the aircraft "
+            "are available."
+        ),
+    )
     autoplan_tankers_for_oca: bool = boolean_option(
         "Auto-planner plans refueling flights for OCA packages",
         page=CAMPAIGN_DOCTRINE_PAGE,

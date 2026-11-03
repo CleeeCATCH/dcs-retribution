@@ -1,0 +1,100 @@
+{
+    "nameInUI": "Tactical AI",
+    "descriptionInUI": "Makes AI flights react to the air battle during the mission: CAPs commit on contacts their AWACS/EWRs/fighters see and share targets out, outnumbered fighters low on missiles retreat, strikes that lose their escort turn back when enemy fighters appear, and strikers may jettison bombs to defend.",
+    "defaultValue": false,
+    "specificOptions": [
+        {
+            "nameInUI": "CAP commits on contacts seen by AWACS/EWR/fighters",
+            "mnemonic": "enableCommit",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "CAP commit range (nm)",
+            "mnemonic": "commitRangeNm",
+            "minimumValue": 10,
+            "maximumValue": 150,
+            "defaultValue": 60
+        },
+        {
+            "nameInUI": "CAP leash from station (nm)",
+            "mnemonic": "leashRangeNm",
+            "minimumValue": 10,
+            "maximumValue": 200,
+            "defaultValue": 80
+        },
+        {
+            "nameInUI": "Maximum commit time (minutes)",
+            "mnemonic": "maxCommitMinutes",
+            "minimumValue": 1,
+            "maximumValue": 60,
+            "defaultValue": 10
+        },
+        {
+            "nameInUI": "Outnumbered fighters low on missiles retreat",
+            "mnemonic": "enableRetreat",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "Outnumbered ratio (enemy fighters per own aircraft)",
+            "mnemonic": "outnumberedRatio",
+            "minimumValue": 1,
+            "maximumValue": 5,
+            "defaultValue": 2
+        },
+        {
+            "nameInUI": "Low on missiles below (AAMs per aircraft)",
+            "mnemonic": "lowMissilesPerAircraft",
+            "minimumValue": 0,
+            "maximumValue": 8,
+            "defaultValue": 2
+        },
+        {
+            "nameInUI": "Strikes abort when their escort is lost",
+            "mnemonic": "enableStrikeAbort",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "Strikes without a planned escort also abort",
+            "mnemonic": "abortUnescorted",
+            "defaultValue": false
+        },
+        {
+            "nameInUI": "Enemy fighter threat range (nm)",
+            "mnemonic": "fighterThreatRangeNm",
+            "minimumValue": 5,
+            "maximumValue": 80,
+            "defaultValue": 30
+        },
+        {
+            "nameInUI": "Strikers may jettison bombs to defend",
+            "mnemonic": "enableJettison",
+            "defaultValue": true
+        },
+        {
+            "nameInUI": "Jettison when enemy fighters within (nm)",
+            "mnemonic": "jettisonRangeNm",
+            "minimumValue": 1,
+            "maximumValue": 40,
+            "defaultValue": 15
+        },
+        {
+            "nameInUI": "Update interval (seconds)",
+            "mnemonic": "updateIntervalSecs",
+            "minimumValue": 5,
+            "maximumValue": 120,
+            "defaultValue": 15
+        },
+        {
+            "nameInUI": "Debug messages",
+            "mnemonic": "debug",
+            "defaultValue": false
+        }
+    ],
+    "scriptsWorkOrders": [
+        {
+            "file": "tacticalai.lua",
+            "mnemonic": "tacticalai"
+        }
+    ],
+    "configurationWorkOrders": []
+}

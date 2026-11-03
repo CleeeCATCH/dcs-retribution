@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from dataclasses import replace
 from datetime import datetime
-from typing import Dict, Iterable, Optional, Set, TYPE_CHECKING
+from typing import Dict, Iterable, Optional, Sequence, Set, TYPE_CHECKING
 
 from game.ato.airtaaskingorder import AirTaskingOrder
 from game.ato.closestairfields import ObjectiveDistanceCache
@@ -24,6 +25,15 @@ if TYPE_CHECKING:
     from game.ato import Flight
     from game.coalition import Coalition
 
+#: Enemy squadrons able to fly these missions are counted as fighters that could
+#: intercept a package.
+AIR_TO_AIR_ESCORT_THREAT_TASKS = (
+    FlightType.BARCAP,
+    FlightType.INTERCEPTION,
+    FlightType.SWEEP,
+    FlightType.ESCORT,
+)
+
 
 class PackageFulfiller:
     """Responsible for package aircraft allocation and flight plan layout."""
@@ -40,6 +50,7 @@ class PackageFulfiller:
         self.flight_db = flight_db
         self.player_missions_asap = settings.auto_ato_player_missions_asap
         self.default_start_type = settings.default_start_type
+        self.scale_escorts = settings.autoplan_scale_escorts_to_air_threat
 
     @property
     def is_player(self) -> bool:
@@ -142,6 +153,58 @@ class PackageFulfiller:
                 threats[EscortType.Sead] = True
         return threats
 
+    def enemy_fighters_covering(self, flights: Sequence[Flight]) -> int:
+        """Counts enemy fighters based close enough to reach the package's route.
+
+        A squadron counts if its base's BARCAP threat range covers any of the
+        package's escorted waypoints. This is the force the enemy could put up
+        against the package, not what it will actually launch.
+        """
+        waypoints = [
+            waypoint
+            for flight in flights
+            for waypoint in flight.flight_plan.escorted_waypoints()
+        ]
+        if not waypoints:
+            return 0
+        opponent = self.coalition.opponent
+        reach_by_base: dict[int, float] = {}
+        fighters = 0
+        for squadron in opponent.air_wing.iter_squadrons():
+            if not any(
+                squadron.capable_of(task) for task in AIR_TO_AIR_ESCORT_THREAT_TASKS
+            ):
+                continue
+            base = squadron.location
+            if id(base) not in reach_by_base:
+                reach_by_base[id(base)] = ThreatZones.barcap_threat_range(
+                    opponent.doctrine, base
+                ).meters
+            reach = reach_by_base[id(base)]
+            if any(
+                base.position.distance_to_point(waypoint.position) <= reach
+                for waypoint in waypoints
+            ):
+                fighters += squadron.owned_aircraft
+        return fighters
+
+    def escort_size_for_threat(
+        self, flights: Sequence[Flight], escort: ProposedFlight
+    ) -> int:
+        """Returns how many aircraft an air-to-air escort should have.
+
+        Two-ship escorts are fine against a token defence but are swamped by a
+        big enemy fighter force, so escorts grow to a four-ship when the
+        fighters able to reach the route outnumber the package two to one.
+        """
+        if not self.scale_escorts or escort.escort_type is not EscortType.AirToAir:
+            return escort.num_aircraft
+        package_size = sum(flight.count for flight in flights)
+        enemy_fighters = self.enemy_fighters_covering(flights)
+        if enemy_fighters >= max(6, 2 * package_size):
+            return max(escort.num_aircraft, 4)
+        return escort.num_aircraft
+
     def can_plan_escort(self, type: EscortType) -> bool:
         if type == EscortType.AirToAir:
             return self.air_wing_can_plan(FlightType.ESCORT)
@@ -227,6 +290,9 @@ class PackageFulfiller:
                 flight.recreate_flight_plan()
 
         needed_escorts = self.check_needed_escorts(builder)
+        # Only the main flights have flight plans at this point; measure the air
+        # threat against them before any escorts join the package.
+        main_flights = list(builder.package.flights)
         for escort in escorts:
             # This list was generated from the not None set, so this should be
             # impossible.
@@ -234,6 +300,15 @@ class PackageFulfiller:
             if needed_escorts[escort.escort_type] and self.can_plan_escort(
                 escort.escort_type
             ):
+                size = self.escort_size_for_threat(main_flights, escort)
+                if size > escort.num_aircraft:
+                    # Try for the bigger escort, but settle for the standard one
+                    # (and its usual purchase request) if it can't be filled.
+                    with tracer.trace("Flight planning"):
+                        if builder.plan_flight(
+                            replace(escort, num_aircraft=size), ignore_range=False
+                        ):
+                            continue
                 with tracer.trace("Flight planning"):
                     self.plan_flight(
                         mission, escort, builder, missing_types, purchase_multiplier
