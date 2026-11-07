@@ -8,13 +8,17 @@ strikers may jettison.
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 from typing import Any
 
-import lupa.lua51 as lupa  # type: ignore[import-untyped]
 import pytest
 
 from game.plugins import LuaPluginManager
+
+# DCS runs Lua 5.1. Imported dynamically so the type check passes whether or not
+# the installed lupa ships type information.
+lupa: Any = importlib.import_module("lupa.lua51")
 
 SCRIPT = Path("resources/plugins/tacticalai/tacticalai.lua")
 NM = 1852
